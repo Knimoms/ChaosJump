@@ -6,6 +6,13 @@ constexpr int WINDOW_HEIGHT = 600;
 
 int main(int argc, char *argv[])
 {
-    Application application(WINDOW_TITLE, WINDOW_WIDTH, WINDOW_HEIGHT);
+    ApplicationParams applicationParams;
+    applicationParams.title = WINDOW_TITLE;
+    applicationParams.width = WINDOW_WIDTH;
+    applicationParams.height = WINDOW_HEIGHT;
+    
+    Application application(applicationParams);
+    application.run();
+    
     return 0;
 }
