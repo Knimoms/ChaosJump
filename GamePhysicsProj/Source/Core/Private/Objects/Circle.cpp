@@ -1,5 +1,5 @@
 #include "Objects/Circle.h"
-#define _USE_MATH_DEFINES 
+#define _USE_MATH_DEFINES
 
 #include "Physics/CollisionShapes/CircleShape.h"
 #include "SDL3/SDL_render.h"
@@ -25,11 +25,15 @@ void Circle::draw(SDL_Renderer* renderer)
     
     std::vector vertices = {centerVertex};
     std::vector<int> indices;
+
+    constexpr int steps = 360;
+    constexpr float anglePerStep = 2.f * static_cast<float>((M_PI / steps));
     
-    for(float i = 0.0; i < twoPI + stepsize; i += stepsize)
+    for(unsigned int i = 0; i < steps + 1; ++i)
     {
-        float xCoord = SDL_cosf(i) * mRadius + mLocation.x;
-        float yCoord = SDL_sinf(i) * mRadius + mLocation.y;
+        const float angle = i * anglePerStep;
+        float xCoord = SDL_cosf(angle) * mRadius + mLocation.x;
+        float yCoord = SDL_sinf(angle) * mRadius + mLocation.y;
 
         SDL_Vertex vertex1 = centerVertex;
         vertex1.position = {xCoord, yCoord};

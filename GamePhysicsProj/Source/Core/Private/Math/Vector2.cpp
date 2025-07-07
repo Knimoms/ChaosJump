@@ -68,13 +68,13 @@ float Vector2::squaredSize() const
     return x*x + y*y;
 }
 
-bool Vector2::normalize()
+bool Vector2::normalize(float& outSize)
 {
-    const float vecSize = size();
-    if (vecSize < 0.000001f) return false;
+    outSize = size();
+    if (outSize < 0.000001f) return false;
 
-    x /= vecSize;
-    y /= vecSize;
+    x /= outSize;
+    y /= outSize;
 
     return true;
 }
@@ -82,7 +82,8 @@ bool Vector2::normalize()
 Vector2 Vector2::getNormalized() const
 {
     Vector2 vec = *this;
-    if (vec.normalize()) return vec;
+    float outSize;
+    if (vec.normalize(outSize)) return vec;
     
     return {.x = 0.0f, .y = 0.0f};
 }

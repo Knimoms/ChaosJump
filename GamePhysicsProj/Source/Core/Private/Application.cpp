@@ -10,10 +10,13 @@
 #define PRINT_SDL_ERROR(ErrorContext) std::cout << (ErrorContext) << std::format(": %s\n", SDL_GetError());
 #define SDL_FLAGS SDL_INIT_VIDEO
 
+ApplicationParams Application::sApplicationParams;
+
 Application::Application(const ApplicationParams& params) : mInputRouter(std::make_shared<InputRouter>())
 {
     const auto [title, width, height, renderDriver, fps] = params;
 
+    mWindowSize = {.x = static_cast<float>(width), .y = static_cast<float>(height)};
     mFrameTime = fps ? 1000 / fps : 0;
 
     if (!SDL_Init(SDL_FLAGS))
@@ -55,19 +58,31 @@ Application::~Application()
     SDL_Quit();
 }
 
+Application& Application::initApplication(const ApplicationParams& params)
+{
+    sApplicationParams = params;
+    return getApplication();
+}
+
+Application& Application::getApplication()
+{
+    static Application app(sApplicationParams);
+    return app;
+}
+
 void Application::run()
 {
     bRunning = true;
 
     Circle circle1(100);
-    circle1.setVelocity({50, 0});
-    circle1.setLocation({0, 400});
+    circle1.setVelocity({750, 25});
+    circle1.setLocation({150, 400});
     circle1.setMass(100);
     circle1.setColor({255, 255, 255});
 
     Circle circle2(25);
-    circle2.setVelocity({-100, 0});
-    circle2.setLocation({800, 400});
+    circle2.setVelocity({-100, 100});
+    circle2.setLocation({400, 400});
     circle2.setMass(25);
 
     uint64_t now = SDL_GetPerformanceCounter();
@@ -75,6 +90,7 @@ void Application::run()
 
     while (bRunning)
     {
+        ++frameCount;
         last = now;
         now = SDL_GetPerformanceCounter();
         const float deltaTime = static_cast<float>(now - last) / SDL_GetPerformanceFrequency();
@@ -92,6 +108,7 @@ void Application::run()
 
 void Application::tickObjects(float deltaSeconds)
 {
+    
     for (CollisionObject* collisionObject : CollisionObject::sCollisionObjects)
     {
         collisionObject->tick(deltaSeconds);

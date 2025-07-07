@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     applicationParams.width = WINDOW_WIDTH;
     applicationParams.height = WINDOW_HEIGHT;
     
-    Application application(applicationParams);
+    Application& application = Application::initApplication(applicationParams);
     application.run();
     
     return 0;

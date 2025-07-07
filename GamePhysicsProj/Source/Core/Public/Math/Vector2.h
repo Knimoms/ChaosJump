@@ -17,7 +17,7 @@ struct Vector2
     float size() const;
     float squaredSize() const;
     
-    bool normalize();
+    bool normalize(float& outSize);
     Vector2 getNormalized() const;
     
 };

@@ -15,6 +15,7 @@ public:
     
     virtual ~CollisionShapeInterface() = default;
 
-    virtual CollisionResult isCollidingWithShapeAtLocation(Vector2 shapeLocation, const CollisionShapeInterface* otherShape, Vector2 otherLocation) = 0;
+    virtual CollisionResult isCollidingWithShapeAtLocation(const Vector2& shapeLocation, const CollisionShapeInterface* otherShape, const Vector2& otherLocation) = 0;
+    virtual CollisionResult isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& windowSize) = 0;
     
 };

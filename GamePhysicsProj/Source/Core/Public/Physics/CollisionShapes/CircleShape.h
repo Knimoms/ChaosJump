@@ -13,7 +13,8 @@ public:
     CircleShape(float radius);
 
     //~ Being CollisionShapeInterface Interface
-    CollisionResult isCollidingWithShapeAtLocation(Vector2 shapeLocation, const CollisionShapeInterface* otherShape, Vector2 otherLocation) override;
+    CollisionResult isCollidingWithShapeAtLocation(const Vector2& shapeLocation, const CollisionShapeInterface* otherShape, const Vector2& otherLocation) override;
+    CollisionResult isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& windowSize) override;
     //~ End CollisionShapeInterface Interface
     
 };
