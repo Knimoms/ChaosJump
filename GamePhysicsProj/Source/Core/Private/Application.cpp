@@ -78,12 +78,31 @@ void Application::run()
     circle1.setVelocity({750, 25});
     circle1.setLocation({150, 400});
     circle1.setMass(100);
-    circle1.setColor({255, 255, 255});
+    circle1.setColor({255, 0, 0});
 
     Circle circle2(25);
     circle2.setVelocity({-100, 100});
     circle2.setLocation({400, 400});
     circle2.setMass(25);
+    circle2.setColor({0, 25, 255});
+
+    Circle circle3(10);
+    circle3.setVelocity({-100, 100});
+    circle3.setLocation({350, 400});
+    circle3.setMass(10);
+    circle3.setColor({10, 255, 255});
+
+    Circle circle4(50);
+    circle4.setVelocity({-100, 100});
+    circle4.setLocation({300, 400});
+    circle4.setMass(50);
+    circle4.setColor({0, 255, 50});
+    
+    Circle circle5(75);
+    circle5.setVelocity({-100, 100});
+    circle5.setLocation({400, 300});
+    circle5.setMass(75);
+    circle5.setColor({0, 255, 75});
 
     uint64_t now = SDL_GetPerformanceCounter();
     uint64_t last = 0;
@@ -122,7 +141,7 @@ static void SetRenderDrawColor(SDL_Renderer* renderer, const Color& color)
 
 void Application::drawFrame()
 {
-    SDL_SetRenderDrawColor(mRenderer, 255, 255, 0, 0);
+    SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 0);
     SDL_RenderClear(mRenderer);
     
     for (DrawableInterface* drawables : DrawableInterface::sDrawables)
