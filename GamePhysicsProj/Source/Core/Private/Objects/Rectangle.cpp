@@ -3,7 +3,7 @@
 #include "Physics/CollisionShapes/CircleShape.h"
 #include "SDL3/SDL_render.h"
 
-Rectangle::Rectangle(const float width, const float height) : DrawableInterface({0, 255, 0, 0}), mWidth(width), mHeight(height)
+Rectangle::Rectangle(const float width, const float height) : DrawableInterface({0, 1, 0}), mWidth(width), mHeight(height)
 {
     mRectExtend = {.x = width, .y = height };
     setCollisionShape(new CircleShape(width/2));

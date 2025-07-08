@@ -5,9 +5,10 @@
 #include "SDL3/SDL_render.h"
 #include "SDL3/SDL_stdinc.h"
 
-Circle::Circle(float radius) : DrawableInterface({.r = 255, .g = 0, .b = 0, .a = 0}), mRadius(radius)
+Circle::Circle(float radius) : DrawableInterface({.r = 1.f, .g = 0, .b = 0}), mRadius(radius)
 {
     setCollisionShape(new CircleShape(mRadius));
+    setMass(mRadius);
 }
 
 void Circle::draw(SDL_Renderer* renderer)
@@ -16,11 +17,11 @@ void Circle::draw(SDL_Renderer* renderer)
     constexpr double twoPI = M_PI * 2;
 
     float prevX = mLocation.x, prevY = mLocation.y;
-    const auto [r, g, b, a] = getColor();
+    const auto [r, g, b] = getColor();
     
     SDL_Vertex centerVertex;
     centerVertex.position = {mLocation.x, mLocation.y};
-    centerVertex.color = {static_cast<float>(r), static_cast<float>(g), static_cast<float>(b), static_cast<float>(a)};
+    centerVertex.color = {r, g, b};
     centerVertex.tex_coord = {0.f, 0.f};
     
     std::vector vertices = {centerVertex};
@@ -49,4 +50,5 @@ void Circle::draw(SDL_Renderer* renderer)
     }
     
     SDL_RenderGeometry(renderer, nullptr, vertices.data(), static_cast<int>(vertices.size()), indices.data(), static_cast<int>(indices.size()));
+
 }

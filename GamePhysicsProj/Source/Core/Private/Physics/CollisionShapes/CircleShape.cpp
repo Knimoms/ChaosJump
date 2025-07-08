@@ -23,6 +23,7 @@ CollisionResult CircleShape::isCollidingWithShapeAtLocation(const Vector2& shape
 
         if (srqdRadiiLength > sqrdDistance)
         {
+            result.collisionObject = otherCircle->GetOwner();
             result.bCollided = true;
             result.collisionNormal = deltaLocation.getNormalized();
         }

@@ -23,6 +23,7 @@ CollisionObject::~CollisionObject()
 void CollisionObject::setCollisionShape(CollisionShapeInterface* inCollisionShape)
 {
     mCollisionShape = std::unique_ptr<CollisionShapeInterface>(inCollisionShape);
+    mCollisionShape->setOwner(this);
 }
 
 void CollisionObject::tick(float deltaTime)
@@ -45,32 +46,17 @@ Vector2 computeElasticCollision(const float mass1, const float mass2, const Vect
 void CollisionObject::moveTick(float deltaTime)
 {
     const Vector2 newLocation = mVelocity * deltaTime + mLocation;
-
-    CollisionObject* collidedObject = nullptr;
-
-    const Vector2& windowSize = Application::getApplication().getWindowSize();
-    CollisionResult result = mCollisionShape->isCollidingWithWindowBorderAtLocation(newLocation, windowSize);
-
-    if (!result.bCollided)
-    {
-        for (CollisionObject* collisionObject : sCollisionObjects)
-        {
-            if (collisionObject == this) continue;
-        
-            result = mCollisionShape->isCollidingWithShapeAtLocation(newLocation, collisionObject->getCollisionShape(), collisionObject->getLocation());
-            if (result.bCollided)
-            {
-                collidedObject = collisionObject;
-                break;
-            }
-        }
-    }
+    
+    CollisionResult result = getCollisionResultOnLocation(newLocation);
     
     if (!result.bCollided)
     {
         mLocation = newLocation;
         return;
     }
+
+    CollisionObject* collidedObject = result.collisionObject;
+
     
     const float counterMass = collidedObject ? collidedObject->mMass : static_cast<float>(1LL << 63);
     Vector2 counterVeloctiy = collidedObject ? collidedObject->mVelocity : Vector2{.x = 0.f, .y = 0.f};
@@ -99,4 +85,30 @@ void CollisionObject::setVelocity(Vector2 inVelocity)
 void CollisionObject::setMass(float mass)
 {
     mMass = mass;
+}
+
+CollisionResult CollisionObject::getCurrentCollisionResult() const
+{
+    return getCollisionResultOnLocation(mLocation);
+}
+
+CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inLocation) const
+{
+    const Vector2& windowSize = Application::getApplication().getWindowSize();
+    CollisionResult result = mCollisionShape->isCollidingWithWindowBorderAtLocation(inLocation, windowSize);
+
+    if (result.bCollided) return result;
+
+    for (CollisionObject* collisionObject : sCollisionObjects)
+    {
+        if (collisionObject == this) continue;
+        
+        result = mCollisionShape->isCollidingWithShapeAtLocation(inLocation, collisionObject->getCollisionShape(), collisionObject->getLocation());
+        if (result.bCollided)
+        {
+            break;
+        }
+    }
+
+    return result;
 }

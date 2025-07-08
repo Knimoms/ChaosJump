@@ -3,7 +3,7 @@
 
 struct Color
 {
-    uint8_t r,g,b,a;
+    float r,g,b;
 };
 
 class DrawableInterface
@@ -11,7 +11,7 @@ class DrawableInterface
 
 private:
 
-    Color mColor = {.r = 0, .g = 0, .b = 0, .a = 0};
+    Color mColor = {.r = 0, .g = 0, .b = 0};
     
 public:
 
@@ -22,7 +22,7 @@ public:
 
     static std::vector<DrawableInterface*> sDrawables;
     
-    virtual ~DrawableInterface() = default;
+    virtual ~DrawableInterface();
 
     virtual void draw(class SDL_Renderer* renderer) = 0;
     

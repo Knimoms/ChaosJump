@@ -61,7 +61,7 @@ public:
 protected:
 
     static void tickObjects(float deltaSeconds);
-    void drawFrame();
+    void drawFrame() const;
     void pollEvents();
     void handleEvent(const SDL_Event& event);
     

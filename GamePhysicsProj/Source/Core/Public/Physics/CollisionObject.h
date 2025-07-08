@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 
+#include "CollisionShapeInterface.h"
 #include "Math/Vector2.h"
 
 class CollisionShapeInterface;
@@ -25,7 +26,7 @@ public:
     virtual ~CollisionObject(); 
     
     void setCollisionShape(CollisionShapeInterface* inCollisionShape);
-    const CollisionShapeInterface* getCollisionShape() const { return mCollisionShape.get(); }
+    CollisionShapeInterface* getCollisionShape() const { return mCollisionShape.get(); }
     
     virtual void tick(float deltaTime);
     void moveTick(float deltaTime);
@@ -38,5 +39,11 @@ public:
 
     float getMass() const { return mMass; }
     void setMass(float mass);
+
+    CollisionResult getCurrentCollisionResult() const;
+
+protected:
+
+    CollisionResult getCollisionResultOnLocation(const Vector2& inLocation) const;
         
 };

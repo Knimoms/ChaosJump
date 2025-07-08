@@ -6,6 +6,7 @@
 #include "Input/InputRouter.h"
 #include "Objects/Circle.h"
 #include "Objects/Rectangle.h"
+#include <random>
 
 #define PRINT_SDL_ERROR(ErrorContext) std::cout << (ErrorContext) << std::format(": %s\n", SDL_GetError());
 #define SDL_FLAGS SDL_INIT_VIDEO
@@ -70,39 +71,65 @@ Application& Application::getApplication()
     return app;
 }
 
+template<class ObjectType>
+std::shared_ptr<ObjectType> createRandomCollisionObject()
+{
+    return std::make_shared<ObjectType>();
+}
+
+template<>
+std::shared_ptr<Circle> createRandomCollisionObject()
+{
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<> sizeDist(25, 75);
+    std::uniform_int_distribution<> colorDist(0,SDL_MAX_UINT8);
+
+    unsigned int size = sizeDist(rng);
+    std::shared_ptr<Circle> circle = std::make_shared<Circle>(size);
+
+    const Vector2& windowsSize = Application::getApplication().getWindowSize();
+
+    float r = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
+    float g = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
+    float b = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
+    circle->setColor({.r = r, .g = g, .b = b});
+    std::uniform_int_distribution<> locHeightDist(size,windowsSize.y - size);
+    std::uniform_int_distribution<> locWidthDist(size,windowsSize.x - size);
+
+    Vector2 location = {static_cast<float>(locWidthDist(rng)), static_cast<float>(locHeightDist(rng))};
+    circle->setLocation(location);
+
+    std::uniform_int_distribution<> velocityDist(-1000,1000);
+    circle->setVelocity({static_cast<float>(velocityDist(rng)), static_cast<float>(velocityDist(rng))});
+
+    if (circle->getCurrentCollisionResult().bCollided)
+    {
+        return nullptr;
+    }
+
+    return circle;
+}
+
 void Application::run()
 {
     bRunning = true;
+    std::vector<std::shared_ptr<Circle>> circles;
 
-    Circle circle1(100);
-    circle1.setVelocity({750, 25});
-    circle1.setLocation({150, 400});
-    circle1.setMass(100);
-    circle1.setColor({255, 0, 0});
+    constexpr uint32_t circleCount = 25;
 
-    Circle circle2(25);
-    circle2.setVelocity({-100, 100});
-    circle2.setLocation({400, 400});
-    circle2.setMass(25);
-    circle2.setColor({0, 25, 255});
+    for (uint32_t i = 0; i < circleCount; ++i)
+    {
+        std::shared_ptr<Circle> circle = createRandomCollisionObject<Circle>();
 
-    Circle circle3(10);
-    circle3.setVelocity({-100, 100});
-    circle3.setLocation({350, 400});
-    circle3.setMass(10);
-    circle3.setColor({10, 255, 255});
+        if (!circle)
+        {
+            --i;
+            continue;
+        }
 
-    Circle circle4(50);
-    circle4.setVelocity({-100, 100});
-    circle4.setLocation({300, 400});
-    circle4.setMass(50);
-    circle4.setColor({0, 255, 50});
-    
-    Circle circle5(75);
-    circle5.setVelocity({-100, 100});
-    circle5.setLocation({400, 300});
-    circle5.setMass(75);
-    circle5.setColor({0, 255, 75});
+        circles.push_back(circle);
+    }
 
     uint64_t now = SDL_GetPerformanceCounter();
     uint64_t last = 0;
@@ -134,19 +161,14 @@ void Application::tickObjects(float deltaSeconds)
     }
 }
 
-static void SetRenderDrawColor(SDL_Renderer* renderer, const Color& color)
+void Application::drawFrame() const
 {
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-}
-
-void Application::drawFrame()
-{
-    SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, 0);
+    SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(mRenderer);
     
     for (DrawableInterface* drawables : DrawableInterface::sDrawables)
     {
-        SetRenderDrawColor(mRenderer, drawables->getColor());
+        //SetRenderDrawColor(mRenderer, drawables->getColor());
         drawables->draw(mRenderer);
     }
     
