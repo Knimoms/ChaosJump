@@ -13,10 +13,6 @@ Circle::Circle(float radius) : DrawableInterface({.r = 1.f, .g = 0, .b = 0}), mR
 
 void Circle::draw(SDL_Renderer* renderer)
 {
-    constexpr float stepsize = 0.1f;
-    constexpr double twoPI = M_PI * 2;
-
-    float prevX = mLocation.x, prevY = mLocation.y;
     const auto [r, g, b] = getColor();
     
     SDL_Vertex centerVertex;

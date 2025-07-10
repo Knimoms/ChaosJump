@@ -16,7 +16,9 @@ struct Vector2
     float dot(const Vector2& otherVector) const;
     float size() const;
     float squaredSize() const;
-    
+    bool isAlmostZero() const;
+
+    bool normalize();
     bool normalize(float& outSize);
     Vector2 getNormalized() const;
     

@@ -1,7 +1,9 @@
 #pragma once
 #include <memory>
+#include <vector>
 
 #include "Math/Vector2.h"
+#include "Render/DrawableInterface.h"
 #include "SDL3/SDL_stdinc.h"
 
 class CollisionShapeInterface;
@@ -23,6 +25,13 @@ class SDL_Renderer;
 class InputRouter;
 union SDL_Event;
 
+struct DebugLine
+{
+    Vector2 start;
+    Vector2 end;
+    Color color;
+};
+
 class Application
 {
     
@@ -43,6 +52,8 @@ private:
 
     static ApplicationParams sApplicationParams;
 
+    std::vector<DebugLine> mDebugLines = {};
+
 protected:
     
     Application() = default;
@@ -57,11 +68,11 @@ public:
     void run();
 
     const Vector2& getWindowSize() const { return mWindowSize; }
-
+    void addDebugLine(const DebugLine& debugLine);
 protected:
 
     static void tickObjects(float deltaSeconds);
-    void drawFrame() const;
+    void drawFrame();
     void pollEvents();
     void handleEvent(const SDL_Event& event);
     

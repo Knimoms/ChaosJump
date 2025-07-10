@@ -68,6 +68,17 @@ float Vector2::squaredSize() const
     return x*x + y*y;
 }
 
+bool Vector2::isAlmostZero() const
+{
+    return squaredSize() < 0.000000001f;
+}
+
+bool Vector2::normalize()
+{
+    float outSize;
+    return normalize(outSize);
+}
+
 bool Vector2::normalize(float& outSize)
 {
     outSize = size();

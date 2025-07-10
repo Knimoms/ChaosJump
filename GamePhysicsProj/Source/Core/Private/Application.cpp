@@ -8,6 +8,8 @@
 #include "Objects/Rectangle.h"
 #include <random>
 
+#include "Objects/Polygon.h"
+
 #define PRINT_SDL_ERROR(ErrorContext) std::cout << (ErrorContext) << std::format(": %s\n", SDL_GetError());
 #define SDL_FLAGS SDL_INIT_VIDEO
 
@@ -116,7 +118,7 @@ void Application::run()
     bRunning = true;
     std::vector<std::shared_ptr<Circle>> circles;
 
-    constexpr uint32_t circleCount = 25;
+    constexpr uint32_t circleCount = 0;
 
     for (uint32_t i = 0; i < circleCount; ++i)
     {
@@ -131,6 +133,17 @@ void Application::run()
         circles.push_back(circle);
     }
 
+    
+    Polygon p({{50, 50} , {50, -70}, {-50, -50}, {-50, 50}});
+    p.setLocation({400, 400});
+    p.setVelocity({1000, 0});
+    p.setMass(50);
+    
+    Polygon p2({{100, 50} , {50, -80}, {-50, 50}});
+    p2.setLocation({1000, 450});
+    p2.setVelocity({-500, 0});
+    p2.setMass(50);
+    
     uint64_t now = SDL_GetPerformanceCounter();
     uint64_t last = 0;
 
@@ -152,6 +165,11 @@ void Application::run()
     }
 }
 
+void Application::addDebugLine(const DebugLine& debugLine)
+{
+    mDebugLines.push_back(debugLine);
+}
+
 void Application::tickObjects(float deltaSeconds)
 {
     
@@ -161,16 +179,30 @@ void Application::tickObjects(float deltaSeconds)
     }
 }
 
-void Application::drawFrame() const
+void SetRenderDrawColor(SDL_Renderer* renderer, const Color& color)
+{
+    const auto [r, g, b] = color;
+    SDL_SetRenderDrawColorFloat(renderer, r, g, b, SDL_ALPHA_OPAQUE);
+}
+
+void Application::drawFrame()
 {
     SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(mRenderer);
     
     for (DrawableInterface* drawables : DrawableInterface::sDrawables)
     {
-        //SetRenderDrawColor(mRenderer, drawables->getColor());
         drawables->draw(mRenderer);
     }
+
+    for (const DebugLine& debugLine : mDebugLines)
+    {
+        const auto [start, end, color] = debugLine;
+        SetRenderDrawColor(mRenderer, color);
+        SDL_RenderLine(mRenderer, start.x, start.y, end.x, end.y);
+    }
+
+    mDebugLines.clear();
     
     SDL_RenderPresent(mRenderer);
 }

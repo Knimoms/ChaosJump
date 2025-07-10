@@ -1,5 +1,4 @@
 #include "Physics/CollisionObject.h"
-#include "../../Public/Physics/CollisionObject.h"
 #include <cassert>
 
 #include "Application.h"
@@ -43,32 +42,29 @@ Vector2 computeElasticCollision(const float mass1, const float mass2, const Vect
     return velocity1 - impulseScalar * normal;
 }
 
-void CollisionObject::moveTick(float deltaTime)
+void CollisionObject::moveTick(const float deltaTime)
 {
     const Vector2 newLocation = mVelocity * deltaTime + mLocation;
+
+    const auto [collisionObject, bCollided, collisionNormal] = getCollisionResultOnLocation(newLocation);
     
-    CollisionResult result = getCollisionResultOnLocation(newLocation);
-    
-    if (!result.bCollided)
+    if (!bCollided)
     {
         mLocation = newLocation;
         return;
     }
 
-    CollisionObject* collidedObject = result.collisionObject;
+    const float counterMass = collisionObject ? collisionObject->mMass : static_cast<float>(1LL << 63);
+    Vector2 counterVeloctiy = collisionObject ? collisionObject->mVelocity : Vector2{.x = 0.f, .y = 0.f};
 
-    
-    const float counterMass = collidedObject ? collidedObject->mMass : static_cast<float>(1LL << 63);
-    Vector2 counterVeloctiy = collidedObject ? collidedObject->mVelocity : Vector2{.x = 0.f, .y = 0.f};
-
-    const Vector2 newVelocity = computeElasticCollision(mMass, counterMass, mVelocity, counterVeloctiy, result.collisionNormal);
-    const Vector2 otherVelocity = computeElasticCollision(counterMass, mMass, counterVeloctiy, mVelocity, -1 * result.collisionNormal);
+    const Vector2 newVelocity = computeElasticCollision(mMass, counterMass, mVelocity, counterVeloctiy, collisionNormal);
+    const Vector2 otherVelocity = computeElasticCollision(counterMass, mMass, counterVeloctiy, mVelocity, -1 * collisionNormal);
     
     setVelocity(newVelocity);
 
-    if (collidedObject)
+    if (collisionObject)
     {
-        collidedObject->setVelocity(otherVelocity);
+        collisionObject->setVelocity(otherVelocity);
     }
 }
 
@@ -94,8 +90,14 @@ CollisionResult CollisionObject::getCurrentCollisionResult() const
 
 CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inLocation) const
 {
+    CollisionResult result;
+    if (!mCollisionShape)
+    {
+        return result;
+    }
+    
     const Vector2& windowSize = Application::getApplication().getWindowSize();
-    CollisionResult result = mCollisionShape->isCollidingWithWindowBorderAtLocation(inLocation, windowSize);
+    result = mCollisionShape->isCollidingWithWindowBorderAtLocation(inLocation, windowSize);
 
     if (result.bCollided) return result;
 

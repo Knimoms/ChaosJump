@@ -169,10 +169,12 @@
     <ClCompile Include="Source\Core\Private\Main.cpp" />
     <ClCompile Include="Source\Core\Private\Math\Vector2.cpp" />
     <ClCompile Include="Source\Core\Private\Objects\Circle.cpp" />
+    <ClCompile Include="Source\Core\Private\Objects\Polygon.cpp" />
     <ClCompile Include="Source\Core\Private\Objects\Rectangle.cpp" />
     <ClCompile Include="Source\Core\Private\Physics\CollisionObject.cpp" />
     <ClCompile Include="Source\Core\Private\Physics\CollisionShapeInterface.cpp" />
     <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\CircleShape.cpp" />
+    <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\PolygonShape.cpp" />
     <ClCompile Include="Source\Core\Private\Render\DrawableInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -184,14 +186,17 @@
   <ItemGroup>
     <ClInclude Include="Source\Core\Public\Application.h" />
     <ClInclude Include="Source\Core\Public\ControllableCollisionObject.h" />
+    <ClInclude Include="Source\Core\Public\Debug\DebugDefinitions.h" />
     <ClInclude Include="Source\Core\Public\Input\InputReceiver.h" />
     <ClInclude Include="Source\Core\Public\Input\InputRouter.h" />
     <ClInclude Include="Source\Core\Public\Math\Vector2.h" />
     <ClInclude Include="Source\Core\Public\Objects\Circle.h" />
+    <ClInclude Include="Source\Core\Public\Objects\Polygon.h" />
     <ClInclude Include="Source\Core\Public\Objects\Rectangle.h" />
     <ClInclude Include="Source\Core\Public\Physics\CollisionObject.h" />
     <ClInclude Include="Source\Core\Public\Physics\CollisionShapeInterface.h" />
     <ClInclude Include="Source\Core\Public\Physics\CollisionShapes\CircleShape.h" />
+    <ClInclude Include="Source\Core\Public\Physics\CollisionShapes\PolygonShape.h" />
     <ClInclude Include="Source\Core\Public\Render\DrawableInterface.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
