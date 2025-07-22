@@ -10,8 +10,12 @@ private:
 
     std::vector<Vector2> mVertices = {};
 
-protected:
+private:
 
+    mutable std::vector<Vector2> mNormalCache = {};
+
+protected:
+    
     void getNormalsForRotation(float rotation, std::vector<Vector2>& outNormals) const;
 
     struct Extremes

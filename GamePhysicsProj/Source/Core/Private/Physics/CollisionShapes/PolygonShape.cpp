@@ -13,12 +13,19 @@ Vector2 getNormalForEdgeVector(const Vector2& edge)
 
 void PolygonShape::getNormalsForRotation(const float rotation, std::vector<Vector2>& outNormals) const
 {
+    if (!mNormalCache.empty())
+    {
+        outNormals.insert(outNormals.end(), mNormalCache.begin(), mNormalCache.end());
+        return;    
+    }
+    
     Vector2 currentVertex = mVertices.back();
     for (const Vector2& vertex : mVertices)
     {
         const Vector2 edge = vertex - currentVertex;
         const Vector2 normal = getNormalForEdgeVector(edge);
-        
+
+        mNormalCache.push_back(normal);
         outNormals.push_back(normal);
         currentVertex = vertex;
     }
