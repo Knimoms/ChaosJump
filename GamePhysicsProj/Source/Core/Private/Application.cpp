@@ -159,9 +159,20 @@ std::shared_ptr<Circle> createRandomCollisionObject()
 void Application::run()
 {
     bRunning = true;
+    
+    Polygon p({{50, 50} , {50, -70}, {-50, -50}, {-50, 50}});
+    p.setLocation({400, 400});
+    p.setVelocity({1000, 0});
+    p.setMass(50);
+    
+    Polygon p2({{100, 50} , {50, -80}, {-50, 50}});
+    p2.setLocation({1000, 450});
+    p2.setVelocity({-500, 0});
+    p2.setMass(50);
+    
     std::vector<std::shared_ptr<Circle>> circles;
 
-    constexpr uint32_t circleCount = 0;
+    constexpr uint32_t circleCount = 3;
 
     for (uint32_t i = 0; i < circleCount; ++i)
     {
@@ -238,6 +249,32 @@ void Application::drawFrame(const float deltaTime)
     }
 
     mDebugLines.clear();
+
+#endif
+
+    
+    if (bDrawFPS)
+    {
+        //SetRenderDrawColor(mRenderer, {1, 1, 1});
+        //std::string messageStr = std::format("Current FPS: {:.2f}\n Average FPS: {:.2f}\n Low 1% FPS: {:.2f}\n Low 0.1 FPS: {:.2f}", mFrameTracker.getCurrentFPS(), mFrameTracker.getAverageFPS(), mFrameTracker.getLowestPercentageFPS(0.01f), mFrameTracker.getLowestPercentageFPS(0.001f));
+
+        std::string messageStr = std::format("Current FPS: {:.2f}\n Average FPS: {:.2f}\n", mFrameTracker.getCurrentFPS(), mFrameTracker.getAverageFPS());
+        //
+        //const auto [width, height] = getWindowSize();
+        //SDL_RenderDebugText(mRenderer, width / 2, height / 2, "Test Hello");
+
+        const char *message = messageStr.c_str();
+        int w = 0, h = 0;
+
+        /* Center the message and scale it up */
+        SDL_GetRenderOutputSize(mRenderer, &w, &h);
+        const float x = (w - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(message)) / 2;
+        const float y = (h - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) / 2;
+
+        /* Draw the message */
+        SDL_SetRenderDrawColor(mRenderer, 255, 255, 255, 255);
+        SDL_RenderDebugText(mRenderer, x, y, message);
+    }
     
     SDL_RenderPresent(mRenderer);
 }
