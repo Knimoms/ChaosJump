@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <set>
 #include <vector>
 
 #include "Math/Vector2.h"
@@ -17,6 +18,8 @@ struct ApplicationParams
     const char* renderDriver = "opengl";
     // 0 unlimits FPS
     uint32_t framesPerSecond = 60;
+
+    bool bDrawFPS = true;
     
 };
 
@@ -32,9 +35,34 @@ struct DebugLine
     Color color;
 };
 
-class Application
+class FrameTracker
 {
     
+private:
+    float mTotalFrameTime = 0.f;
+    uint64_t mFrameCounter = 0;
+    
+    float lastFrameTime = 0.f;
+    mutable std::multiset<float> mFrameTimes = {};
+    
+public:
+
+    uint64_t getFrameCounter() const { return mFrameCounter; }
+    
+    void pushFrameTime(float frameTime);
+
+    float getCurrentFPS() const;
+    float getAverageFPS() const;
+
+    /**
+     * \param fraction expects value 0-1
+     */
+    float getLowestPercentageFPS(float fraction) const;
+    
+};
+
+class Application
+{
 private:
 
     SDL_Window* mWindow = nullptr;
@@ -45,13 +73,13 @@ private:
 
     /* measured in ms */
     uint32_t mFrameTime = 16;
-
-    uint64_t frameCount = 0;
-
     Vector2 mWindowSize;
+
+    bool bDrawFPS = true;
 
     static ApplicationParams sApplicationParams;
 
+    FrameTracker mFrameTracker = {};
     std::vector<DebugLine> mDebugLines = {};
 
 protected:
@@ -61,6 +89,8 @@ protected:
     ~Application();
 
 public:
+
+    uint64_t getFrameCount() const { return mFrameTracker.getFrameCounter(); }
 
     static Application& initApplication(const ApplicationParams& params);
     static Application& getApplication();
@@ -72,7 +102,7 @@ public:
 protected:
 
     static void tickObjects(float deltaSeconds);
-    void drawFrame();
+    void drawFrame(float deltaTime);
     void pollEvents();
     void handleEvent(const SDL_Event& event);
     

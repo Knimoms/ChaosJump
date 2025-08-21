@@ -9,18 +9,61 @@
 #include <random>
 
 #include "Objects/Polygon.h"
+#include "Debug/DebugDefinitions.h"
 
 #define PRINT_SDL_ERROR(ErrorContext) std::cout << (ErrorContext) << std::format(": %s\n", SDL_GetError());
 #define SDL_FLAGS SDL_INIT_VIDEO
 
 ApplicationParams Application::sApplicationParams;
 
+void FrameTracker::pushFrameTime(const float frameTime)
+{
+    lastFrameTime = frameTime;
+    mFrameTimes.insert(frameTime);
+    
+    mTotalFrameTime += frameTime;
+    ++mFrameCounter;
+}
+
+float getFPSForFrameTimes(const std::multiset<float>& frameTimes)
+{
+    float totalTime = 0.f;
+    for (const float frameTime : frameTimes)
+    {
+        totalTime += frameTime;
+    }
+
+    return frameTimes.size() / totalTime;
+}
+
+float FrameTracker::getCurrentFPS() const
+{
+    return 1 / lastFrameTime;
+}
+
+float FrameTracker::getAverageFPS() const
+{
+    return mFrameCounter / mTotalFrameTime;
+}
+
+float FrameTracker::getLowestPercentageFPS(float fraction) const
+{
+    fraction = std::clamp(fraction, 0.f, 1.f);
+
+    const size_t framesNum = mFrameTimes.size();
+    const int32_t fractionNum = framesNum * fraction;
+
+    std::multiset<float> lows (mFrameTimes.begin(), mFrameTimes.end());
+    return getFPSForFrameTimes(lows);
+}
+
 Application::Application(const ApplicationParams& params) : mInputRouter(std::make_shared<InputRouter>())
 {
-    const auto [title, width, height, renderDriver, fps] = params;
+    const auto [title, width, height, renderDriver, fps, bInDrawFPS] = params;
 
     mWindowSize = {.x = static_cast<float>(width), .y = static_cast<float>(height)};
     mFrameTime = fps ? 1000 / fps : 0;
+    bDrawFPS = bInDrawFPS;
 
     if (!SDL_Init(SDL_FLAGS))
     {
@@ -133,30 +176,20 @@ void Application::run()
         circles.push_back(circle);
     }
 
-    
-    Polygon p({{50, 50} , {50, -70}, {-50, -50}, {-50, 50}});
-    p.setLocation({400, 400});
-    p.setVelocity({1000, 0});
-    p.setMass(50);
-    
-    Polygon p2({{100, 50} , {50, -80}, {-50, 50}});
-    p2.setLocation({1000, 450});
-    p2.setVelocity({-500, 0});
-    p2.setMass(50);
-    
     uint64_t now = SDL_GetPerformanceCounter();
     uint64_t last = 0;
 
     while (bRunning)
     {
-        ++frameCount;
         last = now;
         now = SDL_GetPerformanceCounter();
         const float deltaTime = static_cast<float>(now - last) / SDL_GetPerformanceFrequency();
+
+        mFrameTracker.pushFrameTime(deltaTime);
         
         pollEvents();
         tickObjects(deltaTime);
-        drawFrame();
+        drawFrame(deltaTime);
 
         if (mFrameTime)
         {
@@ -185,7 +218,7 @@ void SetRenderDrawColor(SDL_Renderer* renderer, const Color& color)
     SDL_SetRenderDrawColorFloat(renderer, r, g, b, SDL_ALPHA_OPAQUE);
 }
 
-void Application::drawFrame()
+void Application::drawFrame(const float deltaTime)
 {
     SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
     SDL_RenderClear(mRenderer);
@@ -194,6 +227,8 @@ void Application::drawFrame()
     {
         drawables->draw(mRenderer);
     }
+
+#if DRAW_DEBUG_LINES
 
     for (const DebugLine& debugLine : mDebugLines)
     {

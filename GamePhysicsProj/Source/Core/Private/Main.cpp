@@ -10,6 +10,7 @@ int main(int argc, char *argv[])
     applicationParams.title = WINDOW_TITLE;
     applicationParams.width = WINDOW_WIDTH;
     applicationParams.height = WINDOW_HEIGHT;
+    applicationParams.framesPerSecond = 0;
     
     Application& application = Application::initApplication(applicationParams);
     application.run();
