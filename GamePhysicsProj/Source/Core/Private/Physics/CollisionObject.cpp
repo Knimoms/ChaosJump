@@ -2,6 +2,7 @@
 #include <cassert>
 
 #include "Application.h"
+#include "Debug/DebugDefinitions.h"
 #include "Physics/CollisionShapeInterface.h"
 
 std::vector<CollisionObject*> CollisionObject::sCollisionObjects = {};
@@ -25,6 +26,14 @@ void CollisionObject::setCollisionShape(CollisionShapeInterface* inCollisionShap
     mCollisionShape->setOwner(this);
 }
 
+Vector2 CollisionObject::getMoveLocation(const float deltaTime) const
+{
+    const uint64_t frameCount = Application::getApplication().getFrameCount();
+    if (frameCount == mLastMoveFrame) return mLocation;
+    
+    return mVelocity * deltaTime + mLocation;
+}
+
 void CollisionObject::tick(float deltaTime)
 {
     moveTick(deltaTime);
@@ -44,21 +53,30 @@ Vector2 computeElasticCollision(const float mass1, const float mass2, const Vect
 
 void CollisionObject::moveTick(const float deltaTime)
 {
-    const Vector2 newLocation = mVelocity * deltaTime + mLocation;
+    const Vector2 newLocation = getMoveLocation(deltaTime);
 
-    const auto [collisionObject, bCollided, collisionNormal] = getCollisionResultOnLocation(newLocation);
+    const auto [collisionObject, bCollided, collisionNormal] = getMoveCollisionResult(deltaTime);
     
     if (!bCollided)
     {
+        mNoMoveCount = 0;
+        mLastMoveFrame = Application::getApplication().getFrameCount();
         mLocation = newLocation;
         return;
     }
+
+    ensure(!collisionNormal.isAlmostZero());
 
     const float counterMass = collisionObject ? collisionObject->mMass : static_cast<float>(1LL << 63);
     Vector2 counterVeloctiy = collisionObject ? collisionObject->mVelocity : Vector2{.x = 0.f, .y = 0.f};
 
     const Vector2 newVelocity = computeElasticCollision(mMass, counterMass, mVelocity, counterVeloctiy, collisionNormal);
     const Vector2 otherVelocity = computeElasticCollision(counterMass, mMass, counterVeloctiy, mVelocity, -1 * collisionNormal);
+
+    if (++mNoMoveCount > 10)
+    {
+        Application::getApplication().addDebugLine({mLocation, mLocation + newVelocity, { 1, 1, 1}});
+    }
     
     setVelocity(newVelocity);
 
@@ -106,6 +124,33 @@ CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inL
         if (collisionObject == this) continue;
         
         result = mCollisionShape->isCollidingWithShapeAtLocation(inLocation, collisionObject->getCollisionShape(), collisionObject->getLocation());
+        if (result.bCollided)
+        {
+            break;
+        }
+    }
+
+    return result;
+}
+
+CollisionResult CollisionObject::getMoveCollisionResult(const float deltaTime) const
+{
+    CollisionResult result;
+    if (!mCollisionShape)
+    {
+        return result;
+    }
+    
+    const Vector2& windowSize = Application::getApplication().getWindowSize();
+    result = mCollisionShape->isCollidingWithWindowBorderAtLocation(getMoveLocation(deltaTime), windowSize);
+
+    if (result.bCollided) return result;
+
+    for (CollisionObject* collisionObject : sCollisionObjects)
+    {
+        if (collisionObject == this) continue;
+        
+        result = mCollisionShape->isCollidingWithShapeAtLocation(getMoveLocation(deltaTime), collisionObject->getCollisionShape(), collisionObject->getMoveLocation(deltaTime));
         if (result.bCollided)
         {
             break;

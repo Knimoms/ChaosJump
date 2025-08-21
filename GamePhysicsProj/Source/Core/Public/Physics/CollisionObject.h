@@ -10,6 +10,10 @@ class CollisionShapeInterface;
 class CollisionObject
 {
 
+private:
+
+    int32_t mNoMoveCount = 0;
+
 protected:
 
     Vector2 mVelocity = {.x = 0, .y = 0};
@@ -17,6 +21,8 @@ protected:
     float mMass = 1.f;
     
     std::unique_ptr<CollisionShapeInterface> mCollisionShape = nullptr;
+
+    uint64_t mLastMoveFrame = 0 - 1;
     
 public:
 
@@ -27,6 +33,8 @@ public:
     
     void setCollisionShape(CollisionShapeInterface* inCollisionShape);
     CollisionShapeInterface* getCollisionShape() const { return mCollisionShape.get(); }
+
+    Vector2 getMoveLocation(float deltaTime) const;
     
     virtual void tick(float deltaTime);
     void moveTick(float deltaTime);
@@ -45,5 +53,6 @@ public:
 protected:
 
     CollisionResult getCollisionResultOnLocation(const Vector2& inLocation) const;
+    CollisionResult getMoveCollisionResult(float deltaTime) const;
         
 };
