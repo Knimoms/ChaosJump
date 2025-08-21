@@ -23,6 +23,9 @@ public:
     CollisionObject* GetOwner() const { return mOwner; }
     void setOwner(CollisionObject* owner);
 
+    template<class LShapeClass, class RShapeClass>
+    static CollisionResult getCollisionResultForShapes(const LShapeClass* shape, const Vector2& shapeLocation, const RShapeClass* otherShape, const Vector2& otherLocation);
+
     virtual CollisionResult isCollidingWithShapeAtLocation(const Vector2& shapeLocation, const CollisionShapeInterface* otherShape, const Vector2& otherLocation) = 0;
     virtual CollisionResult isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& windowSize) = 0;
     

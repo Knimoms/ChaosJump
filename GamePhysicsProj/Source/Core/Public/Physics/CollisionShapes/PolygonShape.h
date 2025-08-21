@@ -14,8 +14,10 @@ private:
 
     mutable std::vector<Vector2> mNormalCache = {};
 
-protected:
+public:
+
     
+    Vector2 getVertexClosestToRelativeLocation(const Vector2& location) const;
     void getNormalsForRotation(float rotation, std::vector<Vector2>& outNormals) const;
 
     struct Extremes
@@ -26,8 +28,6 @@ protected:
     
     Extremes getExtremesOnNormal(const Vector2& location, float rotation, const Vector2& normal) const;
     
-public:
-
     PolygonShape(const std::vector<Vector2>& vertices);
 
     //~ Being CollisionShapeInterface Interface
