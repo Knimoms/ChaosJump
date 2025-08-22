@@ -9,7 +9,7 @@
 #include <random>
 
 #include "Objects/Polygon.h"
-#include "Debug/DebugDefinitions.h"
+#include "Debugging/DebugDefinitions.h"
 
 #define PRINT_SDL_ERROR(ErrorContext) std::cout << (ErrorContext) << std::format(": %s\n", SDL_GetError());
 #define SDL_FLAGS SDL_INIT_VIDEO

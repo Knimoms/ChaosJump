@@ -3,7 +3,7 @@
 #include "Physics/CollisionShapes/PolygonShape.h"
 
 #include "Application.h"
-#include "Debug/DebugDefinitions.h"
+#include "Debugging/DebugDefinitions.h"
 #include "Physics/CollisionShapes/CircleShape.h"
 
 Vector2 getNormalForEdgeVector(const Vector2& edge)

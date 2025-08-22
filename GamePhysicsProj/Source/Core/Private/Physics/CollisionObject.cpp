@@ -2,7 +2,7 @@
 #include <cassert>
 
 #include "Application.h"
-#include "Debug/DebugDefinitions.h"
+#include "Debugging/DebugDefinitions.h"
 #include "Physics/CollisionShapeInterface.h"
 
 std::vector<CollisionObject*> CollisionObject::sCollisionObjects = {};

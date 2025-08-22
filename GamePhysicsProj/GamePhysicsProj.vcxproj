@@ -186,7 +186,7 @@
   <ItemGroup>
     <ClInclude Include="Source\Core\Public\Application.h" />
     <ClInclude Include="Source\Core\Public\ControllableCollisionObject.h" />
-    <ClInclude Include="Source\Core\Public\Debug\DebugDefinitions.h" />
+    <ClInclude Include="Source\Core\Public\Debugging\DebugDefinitions.h" />
     <ClInclude Include="Source\Core\Public\Input\InputReceiver.h" />
     <ClInclude Include="Source\Core\Public\Input\InputRouter.h" />
     <ClInclude Include="Source\Core\Public\Math\Vector2.h" />
