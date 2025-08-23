@@ -1,4 +1,7 @@
 #include "Math/Vector2.h"
+
+#include <format>
+
 #include "SDL3/SDL_stdinc.h"
 
 Vector2 Vector2::operator+(const Vector2& otherVector) const
@@ -97,4 +100,9 @@ Vector2 Vector2::getNormalized() const
     if (vec.normalize(outSize)) return vec;
     
     return {.x = 0.0f, .y = 0.0f};
+}
+
+std::string Vector2::toString() const
+{
+    return std::format("X: {:.5f}\n Y: {:.5f}\n", x, y);
 }

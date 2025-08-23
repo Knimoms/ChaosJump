@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 
 struct Vector2
 {
@@ -21,6 +22,8 @@ struct Vector2
     bool normalize();
     bool normalize(float& outSize);
     Vector2 getNormalized() const;
+
+    std::string toString() const;
     
 };
 
