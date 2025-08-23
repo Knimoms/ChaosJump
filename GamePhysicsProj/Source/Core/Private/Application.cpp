@@ -7,8 +7,9 @@
 #include "Objects/Circle.h"
 #include "Objects/Rectangle.h"
 #include <random>
+#include <algorithm>
 
-#include "Objects/Polygon.h"
+#include "ControllableRectangle.h"
 #include "Debugging/DebugDefinitions.h"
 
 #define PRINT_SDL_ERROR(ErrorContext) std::cout << (ErrorContext) << std::format(": %s\n", SDL_GetError());
@@ -117,7 +118,7 @@ Application& Application::getApplication()
 }
 
 template<class ObjectType>
-std::shared_ptr<ObjectType> createRandomCollisionObject()
+static std::shared_ptr<ObjectType> createRandomCollisionObject()
 {
     return std::make_shared<ObjectType>();
 }
@@ -135,14 +136,14 @@ std::shared_ptr<Circle> createRandomCollisionObject()
 
     const Vector2& windowsSize = Application::getApplication().getWindowSize();
 
-    float r = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
-    float g = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
-    float b = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
+    const float r = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
+    const float g = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
+    const float b = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
     circle->setColor({.r = r, .g = g, .b = b});
     std::uniform_int_distribution<> locHeightDist(size,windowsSize.y - size);
     std::uniform_int_distribution<> locWidthDist(size,windowsSize.x - size);
 
-    Vector2 location = {static_cast<float>(locWidthDist(rng)), static_cast<float>(locHeightDist(rng))};
+    const Vector2 location = {static_cast<float>(locWidthDist(rng)), static_cast<float>(locHeightDist(rng))};
     circle->setLocation(location);
 
     std::uniform_int_distribution<> velocityDist(-1000,1000);
@@ -156,37 +157,87 @@ std::shared_ptr<Circle> createRandomCollisionObject()
     return circle;
 }
 
-void Application::run()
+template<>
+std::shared_ptr<Rectangle> createRandomCollisionObject()
 {
-    bRunning = true;
-    
-    Polygon p({{50, 50} , {50, -70}, {-50, -50}, {-50, 50}});
-    p.setLocation({400, 400});
-    p.setVelocity({1000, 0});
-    p.setMass(50);
-    
-    Polygon p2({{100, 50} , {50, -80}, {-50, 50}});
-    p2.setLocation({1000, 450});
-    p2.setVelocity({-500, 0});
-    p2.setMass(50);
-    
-    std::vector<std::shared_ptr<Circle>> circles;
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<> sizeDist(25, 75);
+    std::uniform_int_distribution<> colorDist(0,SDL_MAX_UINT8);
 
-    constexpr uint32_t circleCount = 3;
+    unsigned int width = sizeDist(rng);
+    unsigned int height = sizeDist(rng);
+    std::shared_ptr<Rectangle> rectangle = std::make_shared<Rectangle>(width, height);
 
-    for (uint32_t i = 0; i < circleCount; ++i)
+    const Vector2& windowsSize = Application::getApplication().getWindowSize();
+
+    const float r = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
+    const float g = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
+    const float b = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
+    rectangle->setColor({.r = r, .g = g, .b = b});
+    std::uniform_int_distribution<> locHeightDist(height,windowsSize.y - height);
+    std::uniform_int_distribution<> locWidthDist(width,windowsSize.x - width);
+
+    const Vector2 location = {static_cast<float>(locWidthDist(rng)), static_cast<float>(locHeightDist(rng))};
+    rectangle->setLocation(location);
+
+    std::uniform_int_distribution<> velocityDist(-1000,1000);
+    rectangle->setVelocity({static_cast<float>(velocityDist(rng)), static_cast<float>(velocityDist(rng))});
+
+    if (rectangle->getCurrentCollisionResult().bCollided)
     {
-        std::shared_ptr<Circle> circle = createRandomCollisionObject<Circle>();
+        return nullptr;
+    }
 
-        if (!circle)
+    return rectangle;
+}
+
+template<class ObjectType>
+static std::vector<std::shared_ptr<ObjectType>> createRandomCollisionObjects(const uint32_t numObjects)
+{
+    std::vector<std::shared_ptr<ObjectType>> objects{};
+
+    for (uint32_t i = 0; i < numObjects; ++i)
+    {
+        std::shared_ptr<ObjectType> object = createRandomCollisionObject<ObjectType>();
+
+        if (!object)
         {
             --i;
             continue;
         }
 
-        circles.push_back(circle);
+        objects.push_back(object);
     }
 
+    return objects;
+}
+
+void Application::run()
+{
+    bRunning = true;
+
+    //Polygon p({{50, 50} , {50, -70}, {-50, -50}, {-50, 50}});
+    //p.setLocation({400, 400});
+    //p.setVelocity({1000, 0});
+    //p.setMass(50);
+    //
+    //Polygon p2({{100, 50} , {50, -80}, {-50, 50}});
+    //p2.setLocation({1000, 450});
+    //p2.setVelocity({-500, 0});
+    //p2.setMass(50);
+    
+    constexpr uint32_t circleCount = 1;
+    std::vector<std::shared_ptr<Circle>> circles = createRandomCollisionObjects<Circle>(circleCount);
+    
+    constexpr uint32_t rectangleCount = 0;
+    std::vector<std::shared_ptr<Rectangle>> rectangles = createRandomCollisionObjects<Rectangle>(rectangleCount);
+
+    const Vector2 size {.x = 100, .y = 100};
+    const Vector2 startPosition {.x = 100, .y = 100};
+    std::shared_ptr<ControllableRectangle> controllableRect = std::make_shared<ControllableRectangle>(size, startPosition);
+
+    mInputRouter->addInputReceiver(controllableRect);
     uint64_t now = SDL_GetPerformanceCounter();
     uint64_t last = 0;
 
@@ -223,7 +274,7 @@ void Application::tickObjects(float deltaSeconds)
     }
 }
 
-void SetRenderDrawColor(SDL_Renderer* renderer, const Color& color)
+static void setRenderDrawColor(SDL_Renderer* renderer, const Color& color)
 {
     const auto [r, g, b] = color;
     SDL_SetRenderDrawColorFloat(renderer, r, g, b, SDL_ALPHA_OPAQUE);
@@ -268,14 +319,10 @@ void Application::drawFrame(const float deltaTime)
         //SDL_RenderDebugText(mRenderer, width / 2, height / 2, "Test Hello");
 
         const char *message = messageStr.c_str();
-        int w = 0, h = 0;
+                
+        const float x = mWindowSize.x - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(message);
+        const float y = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
 
-        /* Center the message and scale it up */
-        SDL_GetRenderOutputSize(mRenderer, &w, &h);
-        const float x = (w - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(message)) / 2;
-        const float y = (h - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE) / 2;
-
-        /* Draw the message */
         SDL_SetRenderDrawColor(mRenderer, 255, 255, 255, 255);
         SDL_RenderDebugText(mRenderer, x, y, message);
     }

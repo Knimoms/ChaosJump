@@ -164,7 +164,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Source\Core\Private\Application.cpp" />
-    <ClCompile Include="Source\Core\Private\ControllableCollisionObject.cpp" />
+    <ClCompile Include="Source\Core\Private\ControllableRectangle.cpp" />
+    <ClCompile Include="Source\Core\Private\Input\InputReceiver.cpp" />
     <ClCompile Include="Source\Core\Private\Input\InputRouter.cpp" />
     <ClCompile Include="Source\Core\Private\Main.cpp" />
     <ClCompile Include="Source\Core\Private\Math\Vector2.cpp" />
@@ -266,7 +267,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Core\Public\Application.h" />
-    <ClInclude Include="Source\Core\Public\ControllableCollisionObject.h" />
+    <ClInclude Include="Source\Core\Public\ControllableRectangle.h" />
     <ClInclude Include="Source\Core\Public\Debugging\DebugDefinitions.h" />
     <ClInclude Include="Source\Core\Public\Input\InputReceiver.h" />
     <ClInclude Include="Source\Core\Public\Input\InputRouter.h" />
