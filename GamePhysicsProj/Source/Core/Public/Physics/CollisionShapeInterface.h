@@ -16,6 +16,7 @@ class CollisionShapeInterface
 private:
 
     CollisionObject* mOwner = nullptr;
+    
 public:
     
     virtual ~CollisionShapeInterface() = default;

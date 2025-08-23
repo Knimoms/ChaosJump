@@ -9,28 +9,6 @@ CircleShape::CircleShape(float radius) : mRadius(radius)
 {
 }
 
-template<>
-CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const CircleShape* shape, const Vector2& shapeLocation, const CircleShape* otherShape, const Vector2& otherLocation)
-{
-    assert(otherShape);
-    
-    CollisionResult result;
-    const Vector2 deltaLocation = otherLocation - shapeLocation;
-    const float sqrdDistance = deltaLocation.squaredSize();
-
-    const float radiiLength = shape->getRadius() + otherShape->getRadius();
-    const float srqdRadiiLength = radiiLength * radiiLength;
-
-    if (srqdRadiiLength > sqrdDistance)
-    {
-        result.collisionObject = otherShape->GetOwner();
-        result.bCollided = true;
-        result.collisionNormal = deltaLocation.getNormalized();
-    }
-
-    return result;
-}
-
 CollisionResult CircleShape::isCollidingWithShapeAtLocation(const Vector2& shapeLocation, const CollisionShapeInterface* otherShape, const Vector2& otherLocation)
 {
     if (const CircleShape* otherCircleShape = dynamic_cast<const CircleShape*>(otherShape))

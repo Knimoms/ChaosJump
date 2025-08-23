@@ -133,10 +133,13 @@ CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inL
     {
         return result;
     }
-    
-    const Vector2& windowSize = Application::getApplication().getWindowSize();
-    result = mCollisionShape->isCollidingWithWindowBorderAtLocation(inLocation, windowSize);
 
+    if (bCanCollideWithWindowBorder)
+    {
+        const Vector2& windowSize = Application::getApplication().getWindowSize();
+        result = mCollisionShape->isCollidingWithWindowBorderAtLocation(inLocation, windowSize);
+    }
+    
     if (result.bCollided) return result;
 
     for (CollisionObject* collisionObject : sCollisionObjects)
@@ -155,27 +158,5 @@ CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inL
 
 CollisionResult CollisionObject::getMoveCollisionResult(const float deltaTime) const
 {
-    CollisionResult result;
-    if (!mCollisionShape)
-    {
-        return result;
-    }
-    
-    const Vector2& windowSize = Application::getApplication().getWindowSize();
-    result = mCollisionShape->isCollidingWithWindowBorderAtLocation(getMoveLocation(deltaTime), windowSize);
-
-    if (result.bCollided) return result;
-
-    for (CollisionObject* collisionObject : sCollisionObjects)
-    {
-        if (collisionObject == this) continue;
-        
-        result = mCollisionShape->isCollidingWithShapeAtLocation(getMoveLocation(deltaTime), collisionObject->getCollisionShape(), collisionObject->getMoveLocation(deltaTime));
-        if (result.bCollided)
-        {
-            break;
-        }
-    }
-
-    return result;
+    return getCollisionResultOnLocation(getMoveLocation(deltaTime));
 }
