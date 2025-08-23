@@ -1,6 +1,8 @@
 #include "Objects/Circle.h"
 #define _USE_MATH_DEFINES
 
+#include <corecrt_math_defines.h>
+
 #include "Physics/CollisionShapes/CircleShape.h"
 #include "SDL3/SDL_render.h"
 #include "SDL3/SDL_stdinc.h"
@@ -8,22 +10,18 @@
 Circle::Circle(float radius) : DrawableInterface({.r = 1.f, .g = 0, .b = 0}), mRadius(radius)
 {
     setCollisionShape(new CircleShape(mRadius));
-    setMass(mRadius);
-}
+    setArea(M_PI * (mRadius * mRadius));
 
-void Circle::draw(SDL_Renderer* renderer)
-{
     const auto [r, g, b] = getColor();
     
     SDL_Vertex centerVertex;
-    centerVertex.position = {mLocation.x, mLocation.y};
-    centerVertex.color = {r, g, b};
+    centerVertex.position = {0, 0};
+    centerVertex.color = {r, g, b, 0};
     centerVertex.tex_coord = {0.f, 0.f};
     
-    std::vector vertices = {centerVertex};
-    std::vector<int> indices;
+    mVertices = { centerVertex };
 
-    constexpr int steps = 360;
+    constexpr int steps = 16;
     constexpr float anglePerStep = 2.f * static_cast<float>((M_PI / steps));
     
     for(unsigned int i = 0; i < steps + 1; ++i)
@@ -35,16 +33,30 @@ void Circle::draw(SDL_Renderer* renderer)
         SDL_Vertex vertex1 = centerVertex;
         vertex1.position = {xCoord, yCoord};
 
-        vertices.push_back(vertex1);
+        mVertices.push_back(vertex1);
 
-        int verticesSize = static_cast<int>(vertices.size());
+        int verticesSize = static_cast<int>(mVertices.size());
         if (verticesSize < 3) continue;
 
-        indices.push_back(0);
-        indices.push_back(verticesSize - 1);
-        indices.push_back(verticesSize - 2);
+        mIndices.push_back(0);
+        mIndices.push_back(verticesSize - 1);
+        mIndices.push_back(verticesSize - 2);
+    }
+}
+
+void Circle::draw(SDL_Renderer* renderer)
+{
+    const auto [r, g, b] = getColor();
+    
+    std::vector translatedVertices = mVertices;
+
+    for(SDL_Vertex& vertex : translatedVertices)
+    {
+        vertex.color = {r, g, b, 0};
+        vertex.position.x += mLocation.x;
+        vertex.position.y += mLocation.y;
     }
     
-    SDL_RenderGeometry(renderer, nullptr, vertices.data(), static_cast<int>(vertices.size()), indices.data(), static_cast<int>(indices.size()));
+    SDL_RenderGeometry(renderer, nullptr, translatedVertices.data(), static_cast<int>(translatedVertices.size()), mIndices.data(), static_cast<int>(mIndices.size()));
 
 }

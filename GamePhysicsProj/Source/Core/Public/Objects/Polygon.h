@@ -1,13 +1,15 @@
 #pragma once
 #include "Physics/CollisionObject.h"
 #include "Render/DrawableInterface.h"
+#include "SDL3/SDL_render.h"
 
 class Polygon : public CollisionObject, public DrawableInterface
 {
 
 private:
 
-    std::vector<Vector2> mVertices = {};
+    std::vector<SDL_Vertex> mVertices = {};
+    std::vector<int> mIndices = {};
 
 public:
 
