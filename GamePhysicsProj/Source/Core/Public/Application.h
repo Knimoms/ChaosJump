@@ -33,6 +33,7 @@ struct DebugLine
     Vector2 start;
     Vector2 end;
     Color color;
+    float duration = 0.f;
 };
 
 class FrameTracker
@@ -99,6 +100,7 @@ public:
 
     const Vector2& getWindowSize() const { return mWindowSize; }
     void addDebugLine(const DebugLine& debugLine);
+    
 protected:
 
     static void tickObjects(float deltaSeconds);

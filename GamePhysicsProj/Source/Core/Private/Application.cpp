@@ -241,14 +241,18 @@ void Application::drawFrame(const float deltaTime)
 
 #if DRAW_DEBUG_LINES
 
-    for (const DebugLine& debugLine : mDebugLines)
+    for (DebugLine& debugLine : mDebugLines)
     {
-        const auto [start, end, color] = debugLine;
-        SetRenderDrawColor(mRenderer, color);
+        auto& [start, end, color, duration] = debugLine;
+        duration -= deltaTime;
+        setRenderDrawColor(mRenderer, color);
         SDL_RenderLine(mRenderer, start.x, start.y, end.x, end.y);
     }
 
-    mDebugLines.clear();
+    std::erase_if(mDebugLines, [](const DebugLine& debugLine)
+    {
+        return debugLine.duration < 0.f;
+    });
 
 #endif
 
