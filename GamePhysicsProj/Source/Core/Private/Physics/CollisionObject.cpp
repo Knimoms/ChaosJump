@@ -1,5 +1,8 @@
 #include "Physics/CollisionObject.h"
+
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 
 #include "Application.h"
 #include "Debugging/DebugDefinitions.h"
@@ -34,6 +37,14 @@ Vector2 CollisionObject::getMoveLocation(const float deltaTime) const
     return mVelocity * deltaTime + mLocation;
 }
 
+static Vector2 applyDamping(const Vector2 velocity, const float dampingPerSecond, const float deltaTime)
+{
+    if (dampingPerSecond <= 0.f) return velocity;
+
+    const float factor = std::exp(-dampingPerSecond * deltaTime);
+    return factor < 1e-4f ? Vector2{0.f, 0.f} : velocity * factor;
+}
+
 void CollisionObject::tick(float deltaTime)
 {
     moveTick(deltaTime);
@@ -56,6 +67,8 @@ void CollisionObject::moveTick(const float deltaTime)
     const Vector2 newLocation = getMoveLocation(deltaTime);
 
     const auto [collisionObject, bCollided, collisionNormal] = getMoveCollisionResult(deltaTime);
+
+    mVelocity = applyDamping(mVelocity, mDampingPerSecond, deltaTime);
     
     if (!bCollided)
     {
@@ -67,22 +80,24 @@ void CollisionObject::moveTick(const float deltaTime)
 
     ensure(!collisionNormal.isAlmostZero());
 
-    const float counterMass = collisionObject ? collisionObject->mMass : static_cast<float>(1LL << 63);
+    const float mass = getMass();
+    const float counterMass = collisionObject ? collisionObject->getMass() : static_cast<float>(1LL << 63);
     Vector2 counterVeloctiy = collisionObject ? collisionObject->mVelocity : Vector2{.x = 0.f, .y = 0.f};
 
-    const Vector2 newVelocity = computeElasticCollision(mMass, counterMass, mVelocity, counterVeloctiy, collisionNormal);
-    const Vector2 otherVelocity = computeElasticCollision(counterMass, mMass, counterVeloctiy, mVelocity, -1 * collisionNormal);
+    Vector2 newVelocity = computeElasticCollision(mass, counterMass, mVelocity, counterVeloctiy, collisionNormal);
+    const Vector2 otherVelocity = computeElasticCollision(counterMass, mass, counterVeloctiy, mVelocity, -1 * collisionNormal);
 
     if (++mNoMoveCount > 10)
     {
         Application::getApplication().addDebugLine({mLocation, mLocation + newVelocity, { 1, 1, 1}});
     }
-    
-    setVelocity(newVelocity);
+
+    Application::getApplication().addDebugLine({mLocation, mLocation + collisionNormal * 100, { 0, 1, 0}, 2.f});
+    mVelocity = newVelocity;
 
     if (collisionObject)
     {
-        collisionObject->setVelocity(otherVelocity);
+        collisionObject->mVelocity = otherVelocity;
     }
 }
 
@@ -96,9 +111,14 @@ void CollisionObject::setVelocity(Vector2 inVelocity)
     mVelocity = inVelocity;
 }
 
-void CollisionObject::setMass(float mass)
+void CollisionObject::setArea(float inArea)
 {
-    mMass = mass;
+    mArea = std::max(inArea, 0.0f);
+}
+
+void CollisionObject::setDensity(float inDensity)
+{
+    mArea = std::max(inDensity, 0.0f);
 }
 
 CollisionResult CollisionObject::getCurrentCollisionResult() const

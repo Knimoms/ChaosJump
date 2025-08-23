@@ -13,12 +13,17 @@ class CollisionObject
 private:
 
     int32_t mNoMoveCount = 0;
+    bool bCanCollideWithWindowBorder = true;
+
+    float mArea = 1.f;
+    float mDensity = 1.f;
 
 protected:
 
     Vector2 mVelocity = {.x = 0, .y = 0};
     Vector2 mLocation = {.x = 0, .y = 0};
-    float mMass = 1.f;
+    
+    float mDampingPerSecond  = 0.f;
     
     std::unique_ptr<CollisionShapeInterface> mCollisionShape = nullptr;
 
@@ -35,7 +40,7 @@ public:
     CollisionShapeInterface* getCollisionShape() const { return mCollisionShape.get(); }
 
     Vector2 getMoveLocation(float deltaTime) const;
-    
+
     virtual void tick(float deltaTime);
     void moveTick(float deltaTime);
 
@@ -45,8 +50,10 @@ public:
     const Vector2& getVelocity() const { return mVelocity; }
     void setVelocity(Vector2 inVelocity);
 
-    float getMass() const { return mMass; }
-    void setMass(float mass);
+    void setArea(float inArea);
+    void setDensity(float inDensity);
+
+    float getMass() const { return mDensity * mArea; }
 
     CollisionResult getCurrentCollisionResult() const;
 
