@@ -16,5 +16,7 @@ private:
 public:
 
     void routeKeyEvent(SDL_Scancode scancode, bool pressed) const;
+
+    void addInputReceiver(std::shared_ptr<IInputReceiver> inputReceiver);
     
 };

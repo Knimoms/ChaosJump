@@ -8,3 +8,8 @@ void InputRouter::routeKeyEvent(const SDL_Scancode scancode, const bool pressed)
         inputReceiver->handleKeyInput(scancode, pressed);
     }
 }
+
+void InputRouter::addInputReceiver(std::shared_ptr<IInputReceiver> inputReceiver)
+{
+    mInputReceivers.push_back(inputReceiver);
+}
