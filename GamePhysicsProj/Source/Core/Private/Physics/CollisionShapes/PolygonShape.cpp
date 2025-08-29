@@ -5,6 +5,7 @@
 #include "Application.h"
 #include "Debugging/DebugDefinitions.h"
 #include "Physics/CollisionShapes/CircleShape.h"
+#include "Physics/CollisionShapes/RectangleShape.h"
 
 Vector2 getNormalForEdgeVector(const Vector2& edge)
 {
@@ -60,12 +61,10 @@ PolygonShape::Extremes PolygonShape::getExtremesOnNormal(const Vector2& location
 {
     Extremes extremes {0, 0};
 
-    Vector2 windowCenter = Application::getApplication().getWindowSize() / 2;
-
     bool bFirstVertex = true;
     for (const Vector2& vertex : mVertices)
     {
-        const Vector2 translated = (vertex + location) - windowCenter;
+        const Vector2 translated = (vertex + location);
         const float dot = translated.dot(normal);
         if (bFirstVertex)
         {
@@ -94,31 +93,40 @@ CollisionResult PolygonShape::isCollidingWithShapeAtLocation(const Vector2& shap
     {
         return getCollisionResultForShapes(this, shapeLocation, otherPolygon, otherLocation);
     }
+    
     if (const CircleShape* circle = dynamic_cast<const CircleShape*>(otherShape))
     {
         return getCollisionResultForShapes(this, shapeLocation, circle, otherLocation);
     }
 
+    if (const RectangleShape* rectangleShape = dynamic_cast<const RectangleShape*>(otherShape))
+    {
+        return getCollisionResultForShapes(this, shapeLocation, rectangleShape, otherLocation);
+    }
+
     return {};
 }
 
-Vector2 GetBoundsCollideNormalForPoint(const Vector2& point, const Vector2& bounds)
+Vector2 GetBoundsCollideNormalForPoint(const Vector2& point, const Vector2& boundsLocation, const Vector2& bounds)
 {
+    const auto [left, top] = boundsLocation;
+    const auto [right, bottom] = boundsLocation + bounds;
+    
     Vector2 result = {0, 0};
-    if (point.x < 0 )
+    if (point.x < left)
     {
         result += {-1, 0};
     }
-    else if (point.x > bounds.x)
+    else if (point.x > right)
     {
         result += {1, 0};
     }
 
-    if (point.y < 0 )
+    if (point.y < top)
     {
         result += {0, -1};
     }
-    else if (point.y > bounds.y)
+    else if (point.y > bottom)
     {
         result += {0, 1};
     }
@@ -126,17 +134,17 @@ Vector2 GetBoundsCollideNormalForPoint(const Vector2& point, const Vector2& boun
     return result;
 }
 
-CollisionResult PolygonShape::isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& windowSize)
+CollisionResult PolygonShape::isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& viewLocation, const Vector2& windowSize)
 {
     CollisionResult result;
     
     for (const Vector2& vertex : mVertices)
     {
-        Vector2 normal = GetBoundsCollideNormalForPoint(vertex + shapeLocation, windowSize);
+        Vector2 normal = GetBoundsCollideNormalForPoint(vertex + shapeLocation, viewLocation, windowSize);
         if (!normal.isAlmostZero())
         {
             result.bCollided = true;
-            result.collisionNormal = normal;
+            result.collisionNormal = -normal;
             break;
         }
     }

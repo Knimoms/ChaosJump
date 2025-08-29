@@ -19,6 +19,11 @@ Vector2 Vector2::operator*(const float number) const
     return {.x = x * number, .y = y * number};
 }
 
+Vector2 Vector2::operator*(const Vector2& otherVector) const
+{
+    return {.x = x * otherVector.x, .y = y * otherVector.y};
+}
+
 Vector2 Vector2::operator/(const float number) const
 {
     return {.x = x / number, .y = y / number};
@@ -56,6 +61,12 @@ Vector2& Vector2::operator/=(const float number)
     return thisRef;
 }
 
+bool Vector2::operator==(const Vector2& vector2) const
+{
+    constexpr float epsilon = std::numeric_limits<float>::epsilon();
+    return std::abs(x - vector2.x) < epsilon && std::abs(y - vector2.y) < epsilon;
+}
+
 float Vector2::dot(const Vector2& otherVector) const
 {
     return x * otherVector.x + y * otherVector.y;
@@ -71,9 +82,14 @@ float Vector2::squaredSize() const
     return x*x + y*y;
 }
 
-bool Vector2::isAlmostZero() const
+bool Vector2::isNormalized() const
 {
-    return squaredSize() < 0.000000001f;
+    return std::abs(squaredSize() - 1.f) < std::numeric_limits<float>::epsilon();
+}
+
+bool Vector2::isAlmostZero(const float tolerance) const
+{
+    return squaredSize() < tolerance;
 }
 
 bool Vector2::normalize()

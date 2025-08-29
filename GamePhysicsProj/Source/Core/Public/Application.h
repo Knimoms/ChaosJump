@@ -7,7 +7,12 @@
 #include "Render/DrawableInterface.h"
 #include "SDL3/SDL_stdinc.h"
 
+class GameMode;
 class CollisionShapeInterface;
+class SDL_Window;
+class SDL_Renderer;
+class InputRouter;
+union SDL_Event;
 
 struct ApplicationParams
 {
@@ -23,17 +28,26 @@ struct ApplicationParams
     
 };
 
-class SDL_Window;
-class SDL_Renderer;
-class InputRouter;
-union SDL_Event;
-
 struct DebugLine
 {
     Vector2 start;
     Vector2 end;
     Color color;
     float duration = 0.f;
+};
+
+struct DisplayText
+{
+    /*TopLeft window border = {-1, -1}, bottom right = {1, 1}*/
+    Vector2 screenPosition = {};
+    std::string text;
+    Color color = {1, 1, 1};
+    float duration = 0.f;
+    
+    /* TopLeft Text border = {-1, -1}, bottom right = {1, 1}
+     * This is the position in the DisplayText that aligns with the screenPosition.
+     */
+    Vector2 alignment = {};
 };
 
 class FrameTracker
@@ -62,13 +76,26 @@ public:
     
 };
 
+struct WindowDeleter
+{
+    void operator()(SDL_Window* rawWindow) const;
+};
+
+
+struct RendererDeleter
+{
+    void operator()(SDL_Renderer* rawRenderer) const;
+};
+
 class Application
 {
 private:
 
-    SDL_Window* mWindow = nullptr;
-    SDL_Renderer* mRenderer = nullptr;
-    std::shared_ptr<InputRouter> mInputRouter;
+    std::unique_ptr<SDL_Window, WindowDeleter> mWindow = nullptr;
+    std::unique_ptr<SDL_Renderer, RendererDeleter> mRenderer = nullptr;
+
+    std::unique_ptr<GameMode> mGameMode = nullptr;
+    std::unique_ptr<InputRouter> mInputRouter = nullptr;
     
     bool bRunning = false;
 
@@ -82,14 +109,18 @@ private:
 
     FrameTracker mFrameTracker = {};
     std::vector<DebugLine> mDebugLines = {};
+    std::vector<DisplayText> mDisplayTexts = {};
 
 protected:
     
     Application() = default;
+
     Application(const ApplicationParams& params);
     ~Application();
 
 public:
+
+    InputRouter* getInputRouter() const { return mInputRouter.get(); }
 
     uint64_t getFrameCount() const { return mFrameTracker.getFrameCounter(); }
 
@@ -100,6 +131,8 @@ public:
 
     const Vector2& getWindowSize() const { return mWindowSize; }
     void addDebugLine(const DebugLine& debugLine);
+    void addDisplayText(const DisplayText& displayText);
+    Vector2 getCurrentViewLocation() const;
     
 protected:
 

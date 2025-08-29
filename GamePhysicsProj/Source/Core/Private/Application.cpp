@@ -9,8 +9,11 @@
 #include <random>
 #include <algorithm>
 
-#include "ControllableRectangle.h"
+#include "Core/TickableInterface.h"
 #include "Debugging/DebugDefinitions.h"
+#include "Game/GameMode.h"
+#include "Objects/Polygon.h"
+#include "Player/Player.h"
 
 #define PRINT_SDL_ERROR(ErrorContext) std::cout << (ErrorContext) << std::format(": %s\n", SDL_GetError());
 #define SDL_FLAGS SDL_INIT_VIDEO
@@ -26,7 +29,7 @@ void FrameTracker::pushFrameTime(const float frameTime)
     ++mFrameCounter;
 }
 
-float getFPSForFrameTimes(const std::multiset<float>& frameTimes)
+static float getFPSForFrameTimes(const std::multiset<float>& frameTimes)
 {
     float totalTime = 0.f;
     for (const float frameTime : frameTimes)
@@ -51,15 +54,23 @@ float FrameTracker::getLowestPercentageFPS(float fraction) const
 {
     fraction = std::clamp(fraction, 0.f, 1.f);
 
-    const size_t framesNum = mFrameTimes.size();
-    const int32_t fractionNum = framesNum * fraction;
-
-    std::multiset<float> lows (mFrameTimes.begin(), mFrameTimes.end());
+    std::multiset lows (mFrameTimes.begin(), mFrameTimes.end());
     return getFPSForFrameTimes(lows);
 }
 
-Application::Application(const ApplicationParams& params) : mInputRouter(std::make_shared<InputRouter>())
+void WindowDeleter::operator()(SDL_Window* rawWindow) const
 {
+    SDL_DestroyWindow(rawWindow);
+}
+
+void RendererDeleter::operator()(SDL_Renderer* rawRenderer) const
+{
+    SDL_DestroyRenderer(rawRenderer);
+}
+
+Application::Application(const ApplicationParams& params) : mGameMode(std::make_unique<GameMode>()), mInputRouter(std::make_unique<InputRouter>())
+{
+    mInputRouter->addInputReceiver(mGameMode.get());
     const auto [title, width, height, renderDriver, fps, bInDrawFPS] = params;
 
     mWindowSize = {.x = static_cast<float>(width), .y = static_cast<float>(height)};
@@ -72,7 +83,7 @@ Application::Application(const ApplicationParams& params) : mInputRouter(std::ma
         return;
     }
     
-    mWindow = SDL_CreateWindow(title, width, height, 0);
+    mWindow = std::unique_ptr<SDL_Window, WindowDeleter>(SDL_CreateWindow(title, width, height, 0));
 
     if (!mWindow)
     {
@@ -80,7 +91,7 @@ Application::Application(const ApplicationParams& params) : mInputRouter(std::ma
         return;
     }
 
-    mRenderer = SDL_CreateRenderer(mWindow, renderDriver);
+    mRenderer = std::unique_ptr<SDL_Renderer, RendererDeleter>(SDL_CreateRenderer(mWindow.get(), renderDriver));
 
     if (!mRenderer)
     {
@@ -90,17 +101,8 @@ Application::Application(const ApplicationParams& params) : mInputRouter(std::ma
 
 Application::~Application()
 {
-    if (mRenderer)
-    {
-        SDL_DestroyRenderer(mRenderer);
-        mRenderer = nullptr;
-    }
-    
-    if (mWindow)
-    {
-        SDL_DestroyWindow(mWindow);
-        mWindow = nullptr;
-    }
+    mRenderer.reset();
+    mWindow.reset();
     
     SDL_Quit();
 }
@@ -140,6 +142,8 @@ std::shared_ptr<Circle> createRandomCollisionObject()
     const float g = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
     const float b = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
     circle->setColor({.r = r, .g = g, .b = b});
+    circle->setCanCollideWithWindowBorder(true, true);
+    circle->setGravity({});
     std::uniform_int_distribution<> locHeightDist(size,windowsSize.y - size);
     std::uniform_int_distribution<> locWidthDist(size,windowsSize.x - size);
 
@@ -161,8 +165,8 @@ template<>
 std::shared_ptr<Rectangle> createRandomCollisionObject()
 {
     std::random_device dev;
-    std::mt19937 rng(dev());
-    std::uniform_int_distribution<> sizeDist(25, 75);
+    std::mt19937 rng{dev()};
+    std::uniform_int_distribution<> sizeDist(25, 200);
     std::uniform_int_distribution<> colorDist(0,SDL_MAX_UINT8);
 
     unsigned int width = sizeDist(rng);
@@ -175,6 +179,8 @@ std::shared_ptr<Rectangle> createRandomCollisionObject()
     const float g = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
     const float b = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
     rectangle->setColor({.r = r, .g = g, .b = b});
+    rectangle->setCanCollideWithWindowBorder(true, true);
+    rectangle->setGravity({});
     std::uniform_int_distribution<> locHeightDist(height,windowsSize.y - height);
     std::uniform_int_distribution<> locWidthDist(width,windowsSize.x - width);
 
@@ -223,27 +229,38 @@ void Application::run()
     //p.setMass(50);
     //
     //Polygon p2({{100, 50} , {50, -80}, {-50, 50}});
+    //p2.setCanCollideWithWindowBorder(true, true);
+    //p2.setGravity({});
+    //
     //p2.setLocation({1000, 450});
     //p2.setVelocity({-500, 0});
-    //p2.setMass(50);
     
-    constexpr uint32_t circleCount = 1;
-    std::vector<std::shared_ptr<Circle>> circles = createRandomCollisionObjects<Circle>(circleCount);
-    
-    constexpr uint32_t rectangleCount = 0;
-    std::vector<std::shared_ptr<Rectangle>> rectangles = createRandomCollisionObjects<Rectangle>(rectangleCount);
+    //constexpr uint32_t circleCount = 2;
+    //std::vector<std::shared_ptr<Circle>> circles = createRandomCollisionObjects<Circle>(circleCount);
+    //
+    //constexpr uint32_t rectangleCount = 2;
+    //std::vector<std::shared_ptr<Rectangle>> rectangles = createRandomCollisionObjects<Rectangle>(rectangleCount);
 
-    const Vector2 size {.x = 100, .y = 100};
-    const Vector2 startPosition {.x = 100, .y = 100};
-    std::shared_ptr<ControllableRectangle> controllableRect = std::make_shared<ControllableRectangle>(size, startPosition);
+    //Rectangle rectangle {200, 200};
+//
+//    rectangle.setCanCollideWithWindowBorder(true, true);
+//    rectangle.setGravity({});
+//
+//    rectangle.setLocation({400, 500});
+//    rectangle.setVelocity({200, 0});
 
-    mInputRouter->addInputReceiver(controllableRect);
+    /*Rectangle rectangle2 {200, 100};
+
+    rectangle2.setCanCollideWithWindowBorder(true, true);
+    rectangle2.setGravity({});
+
+    rectangle2.setLocation({1200, 500});
+    rectangle2.setVelocity({-200, 0});*/
     uint64_t now = SDL_GetPerformanceCounter();
-    uint64_t last = 0;
 
     while (bRunning)
     {
-        last = now;
+        uint64_t last = now;
         now = SDL_GetPerformanceCounter();
         const float deltaTime = static_cast<float>(now - last) / SDL_GetPerformanceFrequency();
 
@@ -265,12 +282,23 @@ void Application::addDebugLine(const DebugLine& debugLine)
     mDebugLines.push_back(debugLine);
 }
 
-void Application::tickObjects(float deltaSeconds)
+void Application::addDisplayText(const DisplayText& displayText)
 {
-    
-    for (CollisionObject* collisionObject : CollisionObject::sCollisionObjects)
+    mDisplayTexts.push_back(displayText);
+}
+
+Vector2 Application::getCurrentViewLocation() const
+{
+    const Player* player = mGameMode ? mGameMode->getPlayer() : nullptr;
+    return player ? player->getViewLocation() : Vector2{};
+}
+
+void Application::tickObjects(const float deltaSeconds)
+{
+    const auto tickables = TickableInterface::sTickables;
+    for (TickableInterface* tickable : tickables)
     {
-        collisionObject->tick(deltaSeconds);
+        tickable->tick(deltaSeconds);
     }
 }
 
@@ -280,14 +308,35 @@ static void setRenderDrawColor(SDL_Renderer* renderer, const Color& color)
     SDL_SetRenderDrawColorFloat(renderer, r, g, b, SDL_ALPHA_OPAQUE);
 }
 
+static void drawDisplayText(const DisplayText& displayText, SDL_Renderer* renderer, const Vector2& windowCenter)
+{
+    auto& [screenPosition, text, color, duration, anchor] = displayText;
+
+    const char *message = text.c_str();
+
+    const Vector2 position = windowCenter + windowCenter * screenPosition;
+
+    const float halfTextWidth = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(message) / 2;
+    const float halfTextHeight = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE /2;
+
+    const float x = position.x - halfTextWidth - anchor.x * halfTextWidth;
+    const float y = position.y - halfTextHeight - anchor.y * halfTextHeight;
+                
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderDebugText(renderer, x, y, message);
+}
+
 void Application::drawFrame(const float deltaTime)
 {
-    SDL_SetRenderDrawColor(mRenderer, 0, 0, 0, SDL_ALPHA_OPAQUE);
-    SDL_RenderClear(mRenderer);
-    
-    for (DrawableInterface* drawables : DrawableInterface::sDrawables)
+    SDL_SetRenderDrawColor(mRenderer.get(), 0, 0, 0, SDL_ALPHA_OPAQUE);
+    SDL_RenderClear(mRenderer.get());
+
+    const Vector2 viewLocation = getCurrentViewLocation();
+
+    for (DrawableInterface* drawable : DrawableInterface::sDrawables)
     {
-        drawables->draw(mRenderer);
+        if (drawable->shouldBeCulled(viewLocation, mWindowSize)) continue;
+        drawable->draw(mRenderer.get(), viewLocation);
     }
 
 #if DRAW_DEBUG_LINES
@@ -296,38 +345,46 @@ void Application::drawFrame(const float deltaTime)
     {
         auto& [start, end, color, duration] = debugLine;
         duration -= deltaTime;
-        setRenderDrawColor(mRenderer, color);
-        SDL_RenderLine(mRenderer, start.x, start.y, end.x, end.y);
+
+        const Vector2 screenStart = start - viewLocation;
+        const Vector2 screenEnd = end - viewLocation;
+        setRenderDrawColor(mRenderer.get(), color);
+        SDL_RenderLine(mRenderer.get(), screenStart.x, screenStart.y, screenEnd.x, screenEnd.y);
     }
 
     std::erase_if(mDebugLines, [](const DebugLine& debugLine)
     {
         return debugLine.duration < 0.f;
     });
-
 #endif
 
     
     if (bDrawFPS)
     {
-        //SetRenderDrawColor(mRenderer, {1, 1, 1});
-        //std::string messageStr = std::format("Current FPS: {:.2f}\n Average FPS: {:.2f}\n Low 1% FPS: {:.2f}\n Low 0.1 FPS: {:.2f}", mFrameTracker.getCurrentFPS(), mFrameTracker.getAverageFPS(), mFrameTracker.getLowestPercentageFPS(0.01f), mFrameTracker.getLowestPercentageFPS(0.001f));
-
         std::string messageStr = std::format("Current FPS: {:.2f}\n Average FPS: {:.2f}\n", mFrameTracker.getCurrentFPS(), mFrameTracker.getAverageFPS());
-        //
-        //const auto [width, height] = getWindowSize();
-        //SDL_RenderDebugText(mRenderer, width / 2, height / 2, "Test Hello");
 
-        const char *message = messageStr.c_str();
-                
-        const float x = mWindowSize.x - SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(message);
-        const float y = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE;
+        DisplayText displayText;
+        displayText.text = messageStr;
+        displayText.screenPosition = {.x = 1, .y = -1};
+        displayText.alignment ={.x = 1, .y = -1};
 
-        SDL_SetRenderDrawColor(mRenderer, 255, 255, 255, 255);
-        SDL_RenderDebugText(mRenderer, x, y, message);
+        addDisplayText(displayText);
     }
     
-    SDL_RenderPresent(mRenderer);
+    for (DisplayText& displayText : mDisplayTexts)
+    {
+        displayText.duration -= deltaTime;
+
+        drawDisplayText(displayText, mRenderer.get(), mWindowSize/2);
+    }
+
+    std::erase_if(mDisplayTexts, [](const DisplayText& displayText)
+    {
+        return displayText.duration < 0.f;
+    });
+
+    
+    SDL_RenderPresent(mRenderer.get());
 }
 
 void Application::pollEvents()

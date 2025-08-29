@@ -1,15 +1,17 @@
 #include "Input/InputRouter.h"
-#include "Input/InputReceiver.h"
+
+#include "Application.h"
+#include "Input/InputReceiverInterface.h"
 
 void InputRouter::routeKeyEvent(const SDL_Scancode scancode, const bool pressed) const
 {
-    for (const std::shared_ptr<IInputReceiver>& inputReceiver : mInputReceivers)
+    for (InputReceiverInterface* inputReceiver : mInputReceivers)
     {
         inputReceiver->handleKeyInput(scancode, pressed);
     }
 }
 
-void InputRouter::addInputReceiver(std::shared_ptr<IInputReceiver> inputReceiver)
+void InputRouter::addInputReceiver(InputReceiverInterface* inputReceiver)
 {
     mInputReceivers.push_back(inputReceiver);
 }

@@ -44,19 +44,31 @@ Circle::Circle(float radius) : DrawableInterface({.r = 1.f, .g = 0, .b = 0}), mR
     }
 }
 
-void Circle::draw(SDL_Renderer* renderer)
+void Circle::draw(SDL_Renderer* renderer, const Vector2& viewLocation)
 {
     const auto [r, g, b] = getColor();
     
     std::vector translatedVertices = mVertices;
 
+    const Vector2 screenLocation = getScreenLocationForView(viewLocation);
+
     for(SDL_Vertex& vertex : translatedVertices)
     {
         vertex.color = {r, g, b, 0};
-        vertex.position.x += mLocation.x;
-        vertex.position.y += mLocation.y;
+        vertex.position.x += screenLocation.x;
+        vertex.position.y += screenLocation.y;
     }
     
     SDL_RenderGeometry(renderer, nullptr, translatedVertices.data(), static_cast<int>(translatedVertices.size()), mIndices.data(), static_cast<int>(mIndices.size()));
 
+}
+
+bool Circle::shouldBeCulled(const Vector2& viewLocation, const Vector2& windowSize) const
+{
+    const Vector2 screenLocation = getScreenLocationForView(viewLocation);
+
+    const bool outOfXBounds = screenLocation.x + mRadius < 0 || screenLocation.x - mRadius > windowSize.x;
+    const bool outOfYBounds = screenLocation.y + mRadius < 0 || screenLocation.y - mRadius > windowSize.y;
+
+    return outOfXBounds || outOfYBounds;
 }

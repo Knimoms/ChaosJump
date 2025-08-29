@@ -1,4 +1,4 @@
-﻿#include <algorithm>
+#include <algorithm>
 
 #include "Application.h"
 #include "Debugging/DebugDefinitions.h"
@@ -6,24 +6,12 @@
 #include "Physics/CollisionShapes/CircleShape.h"
 #include "Physics/CollisionShapes/RectangleShape.h"
 
-static CollisionResult invertCollisionResult(CollisionResult& result, const CollisionShapeInterface* otherShape)
-{
-    if (result.bCollided)
-    {
-        result.collisionNormal *= -1;
-        result.collisionObject = otherShape->GetOwner();
-    }
-    
-    return result;
-}
-
-
 #define INVERT_COLLISION_DEFINITION(leftType, rightType)\
 template<>\
 CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const leftType* shape, const Vector2& shapeLocation, const rightType* otherShape, const Vector2& otherLocation)\
 {\
     CollisionResult result = getCollisionResultForShapes(otherShape, otherLocation, shape, shapeLocation);\
-    return invertCollisionResult(result, otherShape);\
+    return result.getInverted(otherShape->getOwner());\
 }
 
 template<>
@@ -32,7 +20,7 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Circl
     ensure(otherShape);
     
     CollisionResult result;
-    const Vector2 deltaLocation = otherLocation - shapeLocation;
+    const Vector2 deltaLocation = shapeLocation - otherLocation;
     const float sqrdDistance = deltaLocation.squaredSize();
 
     const float radiiLength = shape->getRadius() + otherShape->getRadius();
@@ -40,7 +28,7 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Circl
 
     if (srqdRadiiLength > sqrdDistance)
     {
-        result.collisionObject = otherShape->GetOwner();
+        result.collisionObject = otherShape->getOwner();
         result.bCollided = true;
         result.collisionNormal = deltaLocation.getNormalized();
     }
@@ -102,7 +90,7 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Polyg
     }
     else
     {
-        result.collisionObject = otherShape->GetOwner();
+        result.collisionObject = otherShape->getOwner();
     }
     
     return result;
@@ -122,7 +110,8 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Polyg
 
     float smallestEdgeDistance = std::numeric_limits<float>::max();
 
-    const Vector2 windowCenter = Application::getApplication().getWindowSize() / 2;
+    Application& application = Application::getApplication();
+    const Vector2 windowCenter = application.getWindowSize() / 2;
     
     for (const Vector2& normal : normals)
     {
@@ -137,7 +126,6 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Polyg
         const bool bColliding = !(otherMax < min || max < otherMin);
 
 #if DEBUG_SAT_CIRCLE_COLLISION
-        Application& application = Application::getApplication();
 
         const DebugLine debugLine = {.start = windowCenter + normal * otherMin, .end = windowCenter + normal * otherMax, .color = {.r = 1.f * bColliding, .g = 0.f, .b = 0.5f}};
         application.addDebugLine(debugLine);
@@ -169,7 +157,7 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Polyg
     }
     else
     {
-        result.collisionObject = otherShape->GetOwner();
+        result.collisionObject = otherShape->getOwner();
     }
     
     return result;
@@ -190,23 +178,30 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
     const float deltaX = otherX - x;
     const float xPenetration = (halfWidth + otherHalfWidth) - std::abs(deltaX);
 
-    if (xPenetration < 0) return result;
+    if (xPenetration <= 0) return result;
 
     const float deltaY = otherY - y;
     const float yPenetration = (halfHeight + otherHalfHeight) - std::abs(deltaY);
 
-    if (yPenetration < 0) return result; 
+    if (yPenetration <= 0) return result; 
     
     result.bCollided = true;
+    result.collisionObject = otherShape->getOwner();
 
     if (xPenetration < yPenetration)
     {
-        result.collisionNormal = {.x = (deltaX < 0) ? 1.f : -1.f, .y = 0.f}; 
+        result.collisionNormal = {.x = (deltaX < 0) ? -1.f : 1.f, .y = 0.f}; 
     }
     else
     {
         result.collisionNormal = {.x = 0.f, .y = (deltaY < 0) ? 1.f : -1.f}; 
     }
+
+
+    Application& application = Application::getApplication();
+
+    const DebugLine debugLine = {.start = otherLocation, .end = otherLocation + result.collisionNormal * 100, .color = {.r = 1.f, .g = 0.f, .b = 0.5f}};
+    application.addDebugLine(debugLine);
 
     return result;
 }
@@ -220,7 +215,6 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
     std::vector<Vector2> normals;
     otherShape->getNormalsForRotation(0, normals);
 
-    // Rectangle axes (since it's axis aligned)
     normals.push_back({1.f, 0.f});
     normals.push_back({0.f, 1.f});
 
@@ -228,8 +222,6 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
 
     const auto getRectangleExtremesOnNormal = [&](const Vector2& location, const Vector2& normal) -> std::pair<float,float>
     {
-        Vector2 n = normal.getNormalized();
-
         const Vector2 corners[4] = {
             {.x = location.x - halfWidth, .y = location.y - halfHeight},
             {.x = location.x + halfWidth, .y = location.y - halfHeight},
@@ -242,7 +234,7 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
 
         for (const Vector2& corner : corners)
         {
-            const float projection = corner.dot(n);
+            const float projection = corner.dot(normal);
             min = std::min(projection, min);
             max = std::max(projection, max);
         }
@@ -261,17 +253,19 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
 
         const bool bColliding = !(maxPoly < minRect || maxRect < minPoly);
 
-#if DEBUG_SAT_POLYGON_COLLISION
+#if DEBUG_SAT_RECTANGLE_COLLISION
         Application& application = Application::getApplication();
         const Vector2 windowCenter = application.getWindowSize() / 2;
         const DebugLine debugLine = {.start = windowCenter + normal * minRect, .end = windowCenter + normal * maxRect, .color = {.r = 1.f * bColliding, .g = 0.f, .b = 0.5f}};
+        const DebugLine debugLine2 = {.start = normal * minPoly, .end = normal * maxPoly, .color = {.r = 1.f * bColliding, .g = 0.f, .b = 0.5f}};
         application.addDebugLine(debugLine);
+        application.addDebugLine(debugLine2);
 #endif
 
         if (!bColliding)
         {
             result.bCollided = false;
-#if !DEBUG_SAT_POLYGON_COLLISION
+#if !DEBUG_SAT_RECTANGLE_COLLISION
             break;
 #endif
         }
@@ -293,12 +287,12 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
     }
     else
     {
-        const Vector2 delta = otherLocation - shapeLocation;
+        const Vector2 delta = shapeLocation - otherLocation;
         if (result.collisionNormal.dot(delta) < 0.f)
         {
             result.collisionNormal *= -1.f;
         }
-        result.collisionObject = otherShape->GetOwner();
+        result.collisionObject = otherShape->getOwner();
     }
 
     return result;
@@ -306,12 +300,18 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
 
 INVERT_COLLISION_DEFINITION(PolygonShape, RectangleShape)
 
+/*template<>
+CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const PolygonShape* shape, const Vector2& shapeLocation, const RectangleShape* otherShape, const Vector2& otherLocation)
+{
+    return {};
+}*/
+
 template<>
 CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const RectangleShape* shape, const Vector2& shapeLocation, const CircleShape* otherShape, const Vector2& otherLocation)
 {
     CollisionResult result;
 
-    const auto& [halfWidth, halfHeight] = shape->getExtent();
+    const auto [halfWidth, halfHeight] = shape->getExtent();
     const float radius = otherShape->getRadius();
 
     const Vector2 delta = otherLocation - shapeLocation;
@@ -320,7 +320,7 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
     const float clampedY = std::max(-halfHeight, std::min(delta.y, halfHeight));
     const Vector2 closestPoint = {clampedX, clampedY};
 
-    const Vector2 difference = delta - closestPoint;
+    const Vector2 difference = closestPoint - delta;
     const float distanceSquared = difference.squaredSize();
 
     if (distanceSquared > radius * radius)
@@ -329,7 +329,7 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
     }
 
     result.bCollided = true;
-    result.collisionObject = otherShape->GetOwner();
+    result.collisionObject = otherShape->getOwner();
 
     if (distanceSquared > 0.000001f)
     {
@@ -337,16 +337,16 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
     }
     else
     {
-        const float penetrationX = (halfWidth + radius) - std::abs(delta.x);
-        const float penetrationY = (halfHeight + radius) - std::abs(delta.y);
+        const float xPenetration = (halfWidth + radius) - std::abs(delta.x);
+        const float yPenetration = (halfHeight + radius) - std::abs(delta.y);
 
-        if (penetrationX < penetrationY)
+        if (xPenetration < yPenetration)
         {
-            result.collisionNormal = {.x = (delta.x < 0.f) ? -1.f : 1.f, .y = 0.f};
+            result.collisionNormal = {.x = (delta.x < 0) ? 1.f : -1.f, .y = 0.f}; 
         }
         else
         {
-            result.collisionNormal = {.x = 0.f, .y = (delta.y < 0.f) ? -1.f : 1.f};
+            result.collisionNormal = {.x = 0.f, .y = (delta.y < 0) ? 1.f : -1.f}; 
         }
     }
 

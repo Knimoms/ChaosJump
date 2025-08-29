@@ -1,10 +1,14 @@
 #pragma once
 #include <vector>
 
+struct Vector2;
+
 struct Color
 {
     float r,g,b;
 };
+
+class SDL_Renderer;
 
 class DrawableInterface
 {
@@ -24,6 +28,7 @@ public:
     
     virtual ~DrawableInterface();
 
-    virtual void draw(class SDL_Renderer* renderer) = 0;
+    virtual void draw(SDL_Renderer* renderer, const Vector2& viewLocation) = 0;
+    virtual bool shouldBeCulled(const Vector2& viewLocation, const Vector2& windowSize) const = 0;
     
 };

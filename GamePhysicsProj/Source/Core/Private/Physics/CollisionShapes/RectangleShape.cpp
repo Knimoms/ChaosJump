@@ -11,7 +11,7 @@ CollisionResult RectangleShape::isCollidingWithShapeAtLocation(const Vector2& sh
 {
     if (const PolygonShape* polygonShape = dynamic_cast<const PolygonShape*>(otherShape))
     {
-        return getCollisionResultForShapes(polygonShape, otherLocation, this, shapeLocation);
+        return getCollisionResultForShapes(this, shapeLocation, polygonShape, otherLocation);
     }
     
     if (const CircleShape* otherCircleShape = dynamic_cast<const CircleShape*>(otherShape))
@@ -21,13 +21,13 @@ CollisionResult RectangleShape::isCollidingWithShapeAtLocation(const Vector2& sh
 
     if (const RectangleShape* rectangleShape = dynamic_cast<const RectangleShape*>(otherShape))
     {
-        return getCollisionResultForShapes(rectangleShape, otherLocation, this, shapeLocation);
+        return getCollisionResultForShapes(this, shapeLocation, rectangleShape, otherLocation);
     }
 
     return {};
 }
 
-CollisionResult RectangleShape::isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& windowSize)
+CollisionResult RectangleShape::isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& viewLocation, const Vector2& windowSize)
 {
 
     CollisionResult result;
@@ -35,22 +35,25 @@ CollisionResult RectangleShape::isCollidingWithWindowBorderAtLocation(const Vect
     const auto [left, top] = shapeLocation - mRectangleExtent;
     const auto [right, bottom] = shapeLocation + mRectangleExtent;
 
-    if (left <= 0)
+    const auto [windowLeft, windowTop] = viewLocation;
+    const auto [windowRight, windowBottom] = viewLocation + windowSize;
+
+    if (left < windowLeft)
     {
-        result.collisionNormal -= {.x = 1, .y = 0};
+        result.collisionNormal += {.x = 1, .y = 0};
     }
-    else if (right >= windowSize.x)
+    else if (right > windowRight)
     {
-        result.collisionNormal -= {.x = -1, .y = 0};
+        result.collisionNormal += {.x = -1, .y = 0};
     }
 
-    if (top <= 0)
+    if (top < windowTop)
     {
-        result.collisionNormal -= {.x = 0, .y = 1};
+        result.collisionNormal += {.x = 0, .y = 1};
     }
-    else if (bottom >= windowSize.y)
+    else if (bottom > windowBottom)
     {
-        result.collisionNormal -= {.x = 0, .y = -1};
+        result.collisionNormal += {.x = 0, .y = -1};
     }
 
     if (!result.collisionNormal.isAlmostZero())

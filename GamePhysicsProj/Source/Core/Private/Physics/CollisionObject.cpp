@@ -3,24 +3,57 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <expected>
 
 #include "Application.h"
-#include "Debugging/DebugDefinitions.h"
 #include "Physics/CollisionShapeInterface.h"
 
-std::vector<CollisionObject*> CollisionObject::sCollisionObjects = {};
+std::map<CollisionCategory, std::vector<CollisionObject*>> CollisionObject::sCollisionCategoryBuckets = {};
+
+std::map<CollisionCategory, CollisionResponseConfig> CollisionObject::sDefaultCollisionResponseConfigs = {
+    {
+        CollisionCategory::Player,
+        {{
+            { CollisionCategory::Ground, CollisionResponse::Overlap },
+            { CollisionCategory::Player, CollisionResponse::Block },
+            { CollisionCategory::Obstacle, CollisionResponse::Block }
+        }}
+    },
+    { CollisionCategory::Obstacle,
+        {{
+            { CollisionCategory::Ground, CollisionResponse::Ignore },
+            { CollisionCategory::Player, CollisionResponse::Block },
+            { CollisionCategory::Obstacle, CollisionResponse::Block }
+        }}
+    },
+    { CollisionCategory::Ground,
+        {{
+            { CollisionCategory::Ground, CollisionResponse::Ignore },
+            { CollisionCategory::Player, CollisionResponse::Ignore },
+            { CollisionCategory::Obstacle, CollisionResponse::Ignore }
+        }}
+    }
+};
+
+CollisionResponse& CollisionResponseConfig::operator[](CollisionCategory collisionCategory)
+{
+    return collisionResponseMap[collisionCategory];
+}
+
+const CollisionResponse& CollisionResponseConfig::operator[](CollisionCategory collisionCategory) const
+{
+    return collisionResponseMap[collisionCategory];
+}
 
 CollisionObject::CollisionObject()
 {
-    sCollisionObjects.push_back(this);
+    sCollisionCategoryBuckets[mCollisionCategory].push_back(this);
+    mCollisionResponseConfig = sDefaultCollisionResponseConfigs[mCollisionCategory];
 }
 
 CollisionObject::~CollisionObject()
 {
-    const auto it = std::ranges::find(sCollisionObjects, this);
-    assert(it != sCollisionObjects.end());
-
-    sCollisionObjects.erase(it);
+    removeFromBucket();
 }
 
 void CollisionObject::setCollisionShape(CollisionShapeInterface* inCollisionShape)
@@ -37,17 +70,21 @@ Vector2 CollisionObject::getMoveLocation(const float deltaTime) const
     return mVelocity * deltaTime + mLocation;
 }
 
-static Vector2 applyDamping(const Vector2 velocity, const float dampingPerSecond, const float deltaTime)
+static Vector2 applyDamping(const Vector2 velocity, const Vector2 dampingPerSecond, const float deltaTime)
 {
-    if (dampingPerSecond <= 0.f) return velocity;
+    if (dampingPerSecond.isAlmostZero()) return velocity;
 
-    const float factor = std::exp(-dampingPerSecond * deltaTime);
-    return factor < 1e-4f ? Vector2{0.f, 0.f} : velocity * factor;
+    const Vector2 factor ={ std::exp(-dampingPerSecond.x * deltaTime), std::exp(-dampingPerSecond.y * deltaTime) };
+    return factor.isAlmostZero(1e-4f) ? Vector2{0.f, 0.f} : velocity * factor;
 }
 
-void CollisionObject::tick(float deltaTime)
+void CollisionObject::tick(const float deltaTime)
 {
-    moveTick(deltaTime);
+    updateCollision(deltaTime);
+    if (bCanMove)
+    {
+        moveTick(deltaTime);
+    }
 }
 
 Vector2 computeElasticCollision(const float mass1, const float mass2, const Vector2& velocity1, const Vector2& velocity2, const Vector2& normal)
@@ -55,50 +92,108 @@ Vector2 computeElasticCollision(const float mass1, const float mass2, const Vect
     const Vector2 relativeVelocity = velocity1 - velocity2;
     const float velocityAlongNormal = relativeVelocity.dot(normal);
 
-    if (velocityAlongNormal <= 0.0f) return velocity1;
+    if (velocityAlongNormal >= 0.0f) return velocity1;
 
     const float impulseScalar = (2.0f * mass2 / (mass1 + mass2)) * velocityAlongNormal;
 
     return velocity1 - impulseScalar * normal;
 }
 
-void CollisionObject::moveTick(const float deltaTime)
+template<typename T>
+struct TScopedValueChange
 {
+    T* PropertyPtr = nullptr;
+    T OldValue;
+    
+    TScopedValueChange(T& Property, T NewValue)
+    {
+        OldValue = Property;
+        PropertyPtr = &Property;
+        Property = NewValue;
+    }
+
+    ~TScopedValueChange()
+    {
+        *PropertyPtr = OldValue;
+    }
+};
+
+void CollisionObject::moveTick(float deltaTime)
+{
+    constexpr float maxMoveDeltaTime = 1.f;
+
+    if (deltaTime > maxMoveDeltaTime)
+    {
+        deltaTime = 0.f;
+    }
+
     const Vector2 newLocation = getMoveLocation(deltaTime);
 
-    const auto [collisionObject, bCollided, collisionNormal] = getMoveCollisionResult(deltaTime);
+    const CollisionResult result = getMoveCollisionResult(deltaTime);
+    auto& [collisionObject, bCollided, bBlocked, collisionNormal] = result;
 
     mVelocity = applyDamping(mVelocity, mDampingPerSecond, deltaTime);
-    
-    if (!bCollided)
+
+    mLastMoveFrame = Application::getApplication().getFrameCount();
+
+    if (!bBlocked)
     {
-        mNoMoveCount = 0;
-        mLastMoveFrame = Application::getApplication().getFrameCount();
         mLocation = newLocation;
-        return;
-    }
+        mVelocity += mGravity * deltaTime;
+    }    
+    
+    if (!bCollided) return;
 
-    ensure(!collisionNormal.isAlmostZero());
-
-    const float mass = getMass();
-    const float counterMass = collisionObject ? collisionObject->getMass() : static_cast<float>(1LL << 63);
-    Vector2 counterVeloctiy = collisionObject ? collisionObject->mVelocity : Vector2{.x = 0.f, .y = 0.f};
-
-    Vector2 newVelocity = computeElasticCollision(mass, counterMass, mVelocity, counterVeloctiy, collisionNormal);
-    const Vector2 otherVelocity = computeElasticCollision(counterMass, mass, counterVeloctiy, mVelocity, -1 * collisionNormal);
-
-    if (++mNoMoveCount > 10)
-    {
-        Application::getApplication().addDebugLine({mLocation, mLocation + newVelocity, { 1, 1, 1}});
-    }
-
-    Application::getApplication().addDebugLine({mLocation, mLocation + collisionNormal * 100, { 0, 1, 0}, 2.f});
-    mVelocity = newVelocity;
-
+    float oldDensity = 0.f;
+    Vector2 oldVelocity{};
+    
     if (collisionObject)
     {
-        collisionObject->mVelocity = otherVelocity;
+        oldDensity = collisionObject->mDensity;
+        oldVelocity = collisionObject->getVelocity();
+        
+        collisionObject->handleCollision(result.getInverted(this));
+
     }
+
+    float fallbackDensity;
+    Vector2 fallbackVeloc;
+    const TScopedValueChange ScopedVelocityChange(collisionObject ? collisionObject->mVelocity : fallbackVeloc, oldVelocity);
+    const TScopedValueChange ScopedDensityChange(collisionObject ? collisionObject->mDensity : fallbackDensity, oldDensity);
+
+    handleCollision(result);
+
+    if (bBlocked)
+    {
+        if (collisionNormal.x > 0.f && mVelocity.x < 0.f || collisionNormal.x < 0.f && mVelocity.x > 0.f)
+        {
+            mVelocity.x = 0.f;
+        }
+    
+        if (collisionNormal.y > 0.f && mVelocity.y < 0.f || collisionNormal.y < 0.f && mVelocity.y > 0.f)
+        {
+            mVelocity.y = 0.f;
+        }
+    }
+}
+
+void CollisionObject::setCollisionCategory(const CollisionCategory inCollisionCategory)
+{
+    removeFromBucket();
+    
+    mCollisionCategory = inCollisionCategory;
+    sCollisionCategoryBuckets[mCollisionCategory].push_back(this);
+    mCollisionResponseConfig = sDefaultCollisionResponseConfigs[mCollisionCategory];
+}
+
+void CollisionObject::setGravity(const Vector2& inGravity)
+{
+    mGravity = inGravity;
+}
+
+void CollisionObject::setCanMove(const bool inCanMove)
+{
+    bCanMove = inCanMove;
 }
 
 void CollisionObject::setLocation(const Vector2& inLocation)
@@ -111,7 +206,7 @@ void CollisionObject::setVelocity(Vector2 inVelocity)
     mVelocity = inVelocity;
 }
 
-void CollisionObject::setArea(float inArea)
+void CollisionObject::setArea(const float inArea)
 {
     mArea = std::max(inArea, 0.0f);
 }
@@ -126,6 +221,114 @@ CollisionResult CollisionObject::getCurrentCollisionResult() const
     return getCollisionResultOnLocation(mLocation);
 }
 
+void CollisionObject::setCanCollideWithWindowBorder(const bool inCollideX, const bool inCollideY)
+{
+    bCollideWindowX = inCollideX;
+    bCollideWindowY = inCollideY;
+}
+
+void CollisionObject::removeFromBucket()
+{
+    auto& collisionCategoryBuckets = sCollisionCategoryBuckets[mCollisionCategory];
+    const auto it = std::ranges::find(collisionCategoryBuckets, this);
+    assert(it != collisionCategoryBuckets.end());
+
+    collisionCategoryBuckets.erase(it);
+}
+
+void CollisionObject::handleCollision(const CollisionResult& collisionResult)
+{
+    const auto [collisionObject, bCollided, bBlocked, collisionNormal] = collisionResult;
+    
+    if (collisionObject)
+    {
+        if (mOverlappingObjects.contains(collisionObject) || mBlockingObjects.contains(collisionObject)) return;
+
+        if (bBlocked)
+        {
+            mOverlappingObjects.insert(collisionObject);
+        }
+    }
+
+    if (bBlocked)
+    {
+        handleCollisionHit(collisionObject, collisionNormal);
+    }
+    else
+    {
+        mOverlappingObjects.insert(collisionObject);
+        handleCollisionBegin(collisionObject, collisionNormal);
+    }
+    
+}
+
+void CollisionObject::updateCollision(const float deltaTime)
+{
+    std::vector<CollisionObject*> stoppedOverlappingObjects = {};
+    for (CollisionObject* collisionObject : mOverlappingObjects)
+    {
+        const Vector2 moveLocation = getMoveLocation(deltaTime);
+        const Vector2 otherLocation = collisionObject->getLocation();
+        const CollisionResult result = mCollisionShape->isCollidingWithShapeAtLocation(moveLocation, collisionObject->getCollisionShape(), otherLocation);
+        
+        if (!result.bCollided)
+        {
+            stoppedOverlappingObjects.push_back(collisionObject);
+        }
+        else
+        {
+            handleCollisionUpdate(result.collisionObject, result.collisionNormal);
+        }
+    }
+
+    for (CollisionObject* collisionObject : stoppedOverlappingObjects)
+    {
+        mOverlappingObjects.erase(collisionObject);
+        handleCollisionEnd(collisionObject);
+    }
+
+    std::vector<CollisionObject*> stoppedBlockingObjects = {};
+    for (CollisionObject* collisionObject : mBlockingObjects)
+    {
+        const Vector2 moveLocation = getMoveLocation(deltaTime);
+        const Vector2 otherLocation = collisionObject->getLocation();
+        const CollisionResult result = mCollisionShape->isCollidingWithShapeAtLocation(moveLocation, collisionObject->getCollisionShape(), otherLocation);
+        
+        if (!result.bCollided)
+        {
+            stoppedBlockingObjects.push_back(collisionObject);
+        }
+    }
+
+    for (CollisionObject* collisionObject : stoppedBlockingObjects)
+    {
+        mBlockingObjects.erase(collisionObject);
+    }
+}
+
+void CollisionObject::handleCollisionHit(CollisionObject* collisionObject, const Vector2& collisionNormal)
+{
+    const bool bIsCounterObjectStatic = !collisionObject || !collisionObject->bCanMove;
+    const float counterMass = bIsCounterObjectStatic ? 1e32f : collisionObject->getMass();
+    const Vector2 counterVeloctiy = bIsCounterObjectStatic ? Vector2{.x = 0.f, .y = 0.f} : collisionObject->mVelocity;
+        
+    mVelocity = computeElasticCollision(getMass(), counterMass, mVelocity, counterVeloctiy, collisionNormal);
+    Application::getApplication().addDebugLine({mLocation, mLocation + collisionNormal * 100, { 0, 1, 0}, 2.f});
+}
+
+void CollisionObject::handleCollisionBegin(CollisionObject* collisionObject, const Vector2& collisionNormal)
+{
+}
+
+void CollisionObject::handleCollisionUpdate(CollisionObject* collisionObject, const Vector2& collisionNormal)
+{
+
+}
+
+void CollisionObject::handleCollisionEnd(CollisionObject* collisionObject)
+{
+}
+
 CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inLocation) const
 {
     CollisionResult result;
@@ -134,22 +337,52 @@ CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inL
         return result;
     }
 
-    if (bCanCollideWithWindowBorder)
+    if (bCollideWindowX || bCollideWindowY)
     {
         const Vector2& windowSize = Application::getApplication().getWindowSize();
-        result = mCollisionShape->isCollidingWithWindowBorderAtLocation(inLocation, windowSize);
+        const Vector2 currentViewLocation = Application::getApplication().getCurrentViewLocation();
+        result = mCollisionShape->isCollidingWithWindowBorderAtLocation(inLocation, currentViewLocation, windowSize);
+
+        Vector2& collisionNormal = result.collisionNormal;
+        if (!bCollideWindowX) collisionNormal.x = 0.0f;
+        if (!bCollideWindowY) collisionNormal.y = 0.0f;
+
+        result.bCollided = !collisionNormal.isAlmostZero();
+        result.bBlocked = result.bCollided;
+
+        if (result.bCollided && !collisionNormal.isNormalized())
+        {
+            collisionNormal.normalize();
+        }
     }
     
     if (result.bCollided) return result;
 
-    for (CollisionObject* collisionObject : sCollisionObjects)
+    const auto& CollisionResponseConfig = sDefaultCollisionResponseConfigs[mCollisionCategory];
+
+
+    std::vector<const std::vector<CollisionObject*>*> collidableBucketsPtrs;
+    for (const auto& [collisionCategory, collisionResponse] : CollisionResponseConfig)
     {
-        if (collisionObject == this) continue;
-        
-        result = mCollisionShape->isCollidingWithShapeAtLocation(inLocation, collisionObject->getCollisionShape(), collisionObject->getLocation());
-        if (result.bCollided)
+        if (collisionResponse != CollisionResponse::Ignore)
         {
-            break;
+            sCollisionCategoryBuckets[collisionCategory];
+            collidableBucketsPtrs.push_back(&sCollisionCategoryBuckets[collisionCategory]);
+        }
+    }
+
+    for (const auto bucketPtr: collidableBucketsPtrs)
+    {
+        for (CollisionObject* collisionObject : *bucketPtr)
+        {
+            if (collisionObject == this) continue;
+        
+            result = mCollisionShape->isCollidingWithShapeAtLocation(inLocation, collisionObject->getCollisionShape(), collisionObject->getLocation());
+            if (result.bCollided)
+            {
+                result.bBlocked = CollisionResponse::Block == mCollisionResponseConfig[collisionObject->getCollisionCategory()] && !mOverlappingObjects.contains(collisionObject);
+                return result;
+            }
         }
     }
 

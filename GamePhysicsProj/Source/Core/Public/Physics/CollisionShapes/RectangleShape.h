@@ -15,6 +15,6 @@ public:
 
     //~ Being CollisionShapeInterface Interface
     CollisionResult isCollidingWithShapeAtLocation(const Vector2& shapeLocation, const CollisionShapeInterface* otherShape, const Vector2& otherLocation) override;
-    CollisionResult isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& windowSize) override;
+    CollisionResult isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& viewLocation, const Vector2& windowSize) override;
     //~ End CollisionShapeInterface Interface
 };

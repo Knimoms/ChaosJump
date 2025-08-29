@@ -4,19 +4,19 @@
 
 #include "SDL3/SDL_scancode.h"
 
-class IInputReceiver;
+class InputReceiverInterface;
 
 class InputRouter
 {
 
 private:
 
-    std::vector<std::shared_ptr<IInputReceiver>> mInputReceivers;
+    std::vector<InputReceiverInterface*> mInputReceivers;
     
 public:
 
     void routeKeyEvent(SDL_Scancode scancode, bool pressed) const;
 
-    void addInputReceiver(std::shared_ptr<IInputReceiver> inputReceiver);
+    void addInputReceiver(InputReceiverInterface* inputReceiver);
     
 };
