@@ -335,7 +335,7 @@ CollisionResult CollisionShapeInterface::getCollisionResultForShapes(const Recta
     result.bCollided = true;
     result.collisionObject = otherShape->getOwner();
 
-    if (distanceSquared > 0.000001f)
+    if (distanceSquared > std::numeric_limits<float>::epsilon())
     {
         result.collisionNormal = difference.getNormalized();
     }
