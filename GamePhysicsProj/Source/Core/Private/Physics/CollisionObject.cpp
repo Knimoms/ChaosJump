@@ -6,6 +6,7 @@
 #include <expected>
 
 #include "Application.h"
+#include "Debugging/DebugDefinitions.h"
 #include "Physics/CollisionShapeInterface.h"
 
 std::map<CollisionCategory, std::vector<CollisionObject*>> CollisionObject::sCollisionCategoryBuckets = {};
@@ -163,7 +164,7 @@ void CollisionObject::moveTick(float deltaTime)
 
     handleCollision(result);
 
-    if (bBlocked)
+    if (bBlocked && (!collisionObject || !collisionObject->bCanMove))
     {
         if (collisionNormal.x > 0.f && mVelocity.x < 0.f || collisionNormal.x < 0.f && mVelocity.x > 0.f)
         {
@@ -268,8 +269,21 @@ void CollisionObject::updateCollision(const float deltaTime)
     for (CollisionObject* collisionObject : mOverlappingObjects)
     {
         const Vector2 moveLocation = getMoveLocation(deltaTime);
-        const Vector2 otherLocation = collisionObject->getLocation();
-        const CollisionResult result = mCollisionShape->isCollidingWithShapeAtLocation(moveLocation, collisionObject->getCollisionShape(), otherLocation);
+        const CollisionResult result = [&]()
+        {
+            if (collisionObject)
+            {
+                const Vector2 otherLocation = collisionObject->getLocation();
+                return mCollisionShape->isCollidingWithShapeAtLocation(moveLocation, collisionObject->getCollisionShape(), otherLocation);
+            }
+            else
+            {
+                Application& app = Application::getApplication();
+                const Vector2& windowSize = app.getWindowSize();
+                const Vector2 currentViewLocation = app.getCurrentViewLocation();
+                return mCollisionShape->isCollidingWithWindowBorderAtLocation(moveLocation, currentViewLocation, windowSize);
+            }
+        }();
         
         if (!result.bCollided)
         {
@@ -309,15 +323,20 @@ void CollisionObject::updateCollision(const float deltaTime)
 void CollisionObject::handleCollisionHit(CollisionObject* collisionObject, const Vector2& collisionNormal)
 {
     const bool bIsCounterObjectStatic = !collisionObject || !collisionObject->bCanMove;
-    const float counterMass = bIsCounterObjectStatic ? 1e32f : collisionObject->getMass();
+    const float counterMass = bIsCounterObjectStatic ? std::numeric_limits<float>::max()/2 : collisionObject->getMass();
     const Vector2 counterVeloctiy = bIsCounterObjectStatic ? Vector2{.x = 0.f, .y = 0.f} : collisionObject->mVelocity;
         
     mVelocity = computeElasticCollision(getMass(), counterMass, mVelocity, counterVeloctiy, collisionNormal);
+
     Application::getApplication().addDebugLine({mLocation, mLocation + collisionNormal * 100, { 0, 1, 0}, 2.f});
 }
 
 void CollisionObject::handleCollisionBegin(CollisionObject* collisionObject, const Vector2& collisionNormal)
 {
+    if (!collisionObject)
+    {
+        handleCollisionHit(collisionObject, collisionNormal);
+    }
 }
 
 void CollisionObject::handleCollisionUpdate(CollisionObject* collisionObject, const Vector2& collisionNormal)
@@ -339,8 +358,9 @@ CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inL
 
     if (bCollideWindowX || bCollideWindowY)
     {
-        const Vector2& windowSize = Application::getApplication().getWindowSize();
-        const Vector2 currentViewLocation = Application::getApplication().getCurrentViewLocation();
+        Application& app = Application::getApplication();
+        const Vector2& windowSize = app.getWindowSize();
+        const Vector2 currentViewLocation = app.getCurrentViewLocation();
         result = mCollisionShape->isCollidingWithWindowBorderAtLocation(inLocation, currentViewLocation, windowSize);
 
         Vector2& collisionNormal = result.collisionNormal;
@@ -348,7 +368,6 @@ CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inL
         if (!bCollideWindowY) collisionNormal.y = 0.0f;
 
         result.bCollided = !collisionNormal.isAlmostZero();
-        result.bBlocked = result.bCollided;
 
         if (result.bCollided && !collisionNormal.isNormalized())
         {

@@ -3,9 +3,7 @@
 #include "Physics/CollisionShapes/PolygonShape.h"
 
 #include "Application.h"
-#include "Debugging/DebugDefinitions.h"
 #include "Physics/CollisionShapes/CircleShape.h"
-#include "Physics/CollisionShapes/RectangleShape.h"
 
 Vector2 getNormalForEdgeVector(const Vector2& edge)
 {
@@ -37,7 +35,7 @@ Vector2 PolygonShape::getVertexClosestToRelativeLocation(const Vector2& location
     return closestVertex;
 }
 
-void PolygonShape::getNormalsForRotation(const float rotation, std::vector<Vector2>& outNormals) const
+void PolygonShape::getNormals(std::vector<Vector2>& outNormals) const
 {
     if (!mNormalCache.empty())
     {
@@ -57,7 +55,7 @@ void PolygonShape::getNormalsForRotation(const float rotation, std::vector<Vecto
     }
 }
 
-PolygonShape::Extremes PolygonShape::getExtremesOnNormal(const Vector2& location, float rotation, const Vector2& normal) const
+PolygonShape::Extremes PolygonShape::getExtremesOnNormal(const Vector2& location, const Vector2& normal) const
 {
     Extremes extremes {0, 0};
 
@@ -83,31 +81,11 @@ PolygonShape::Extremes PolygonShape::getExtremesOnNormal(const Vector2& location
     return extremes;
 }
 
-PolygonShape::PolygonShape(const std::vector<Vector2>& vertices) : mVertices(vertices)
+PolygonShape::PolygonShape(const std::vector<Vector2>& vertices) : CollisionShapeInterface(2), mVertices(vertices)
 {
 }
 
-CollisionResult PolygonShape::isCollidingWithShapeAtLocation(const Vector2& shapeLocation, const CollisionShapeInterface* otherShape, const Vector2& otherLocation)
-{
-    if (const PolygonShape* otherPolygon = dynamic_cast<const PolygonShape*>(otherShape))
-    {
-        return getCollisionResultForShapes(this, shapeLocation, otherPolygon, otherLocation);
-    }
-    
-    if (const CircleShape* circle = dynamic_cast<const CircleShape*>(otherShape))
-    {
-        return getCollisionResultForShapes(this, shapeLocation, circle, otherLocation);
-    }
-
-    if (const RectangleShape* rectangleShape = dynamic_cast<const RectangleShape*>(otherShape))
-    {
-        return getCollisionResultForShapes(this, shapeLocation, rectangleShape, otherLocation);
-    }
-
-    return {};
-}
-
-Vector2 GetBoundsCollideNormalForPoint(const Vector2& point, const Vector2& boundsLocation, const Vector2& bounds)
+static Vector2 GetBoundsCollideNormalForPoint(const Vector2& point, const Vector2& boundsLocation, const Vector2& bounds)
 {
     const auto [left, top] = boundsLocation;
     const auto [right, bottom] = boundsLocation + bounds;

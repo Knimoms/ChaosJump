@@ -9,6 +9,10 @@ CollisionResult CollisionResult::getInverted(CollisionObject* other) const
     return invert;
 }
 
+CollisionShapeInterface::CollisionShapeInterface(uint8_t inCollisionShapeID) : mCollisionShapeTypeID(inCollisionShapeID)
+{
+}
+
 void CollisionShapeInterface::setOwner(CollisionObject* owner)
 {
     mOwner = owner;

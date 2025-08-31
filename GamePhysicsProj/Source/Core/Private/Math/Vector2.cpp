@@ -24,6 +24,11 @@ Vector2 Vector2::operator*(const Vector2& otherVector) const
     return {.x = x * otherVector.x, .y = y * otherVector.y};
 }
 
+Vector2 Vector2::operator/(const Vector2& otherVector) const
+{
+    return {.x = x / otherVector.x, .y = y / otherVector.y};
+}
+
 Vector2 Vector2::operator/(const float number) const
 {
     return {.x = x / number, .y = y / number};
@@ -57,6 +62,22 @@ Vector2& Vector2::operator/=(const float number)
 {
     Vector2& thisRef = *this;
     thisRef = thisRef / number;
+
+    return thisRef;
+}
+
+Vector2& Vector2::operator*=(const Vector2& otherVector)
+{
+    Vector2& thisRef = *this;
+    thisRef = thisRef * otherVector;
+
+    return thisRef;
+}
+
+Vector2& Vector2::operator/=(const Vector2& otherVector)
+{
+    Vector2& thisRef = *this;
+    thisRef = thisRef / otherVector;
 
     return thisRef;
 }
@@ -98,13 +119,13 @@ bool Vector2::normalize()
     return normalize(outSize);
 }
 
-bool Vector2::normalize(float& outSize)
+bool Vector2::normalize(float& outOldSize)
 {
-    outSize = size();
-    if (outSize < 0.000001f) return false;
+    outOldSize = size();
+    if (outOldSize < std::numeric_limits<float>::epsilon()) return false;
 
-    x /= outSize;
-    y /= outSize;
+    x /= outOldSize;
+    y /= outOldSize;
 
     return true;
 }

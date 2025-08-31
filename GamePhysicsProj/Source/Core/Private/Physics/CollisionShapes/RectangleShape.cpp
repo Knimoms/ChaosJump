@@ -3,28 +3,8 @@
 #include "Physics/CollisionShapes/CircleShape.h"
 #include "Physics/CollisionShapes/PolygonShape.h"
 
-RectangleShape::RectangleShape(const Vector2& inRectangleExtent) : mRectangleExtent(inRectangleExtent)
+RectangleShape::RectangleShape(const Vector2& inRectangleExtent) : CollisionShapeInterface(3), mRectangleExtent(inRectangleExtent)
 {
-}
-
-CollisionResult RectangleShape::isCollidingWithShapeAtLocation(const Vector2& shapeLocation, const CollisionShapeInterface* otherShape, const Vector2& otherLocation)
-{
-    if (const PolygonShape* polygonShape = dynamic_cast<const PolygonShape*>(otherShape))
-    {
-        return getCollisionResultForShapes(this, shapeLocation, polygonShape, otherLocation);
-    }
-    
-    if (const CircleShape* otherCircleShape = dynamic_cast<const CircleShape*>(otherShape))
-    {
-        return getCollisionResultForShapes(this, shapeLocation, otherCircleShape, otherLocation);
-    }
-
-    if (const RectangleShape* rectangleShape = dynamic_cast<const RectangleShape*>(otherShape))
-    {
-        return getCollisionResultForShapes(this, shapeLocation, rectangleShape, otherLocation);
-    }
-
-    return {};
 }
 
 CollisionResult RectangleShape::isCollidingWithWindowBorderAtLocation(const Vector2& shapeLocation, const Vector2& viewLocation, const Vector2& windowSize)

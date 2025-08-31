@@ -15,3 +15,11 @@ void InputRouter::addInputReceiver(InputReceiverInterface* inputReceiver)
 {
     mInputReceivers.push_back(inputReceiver);
 }
+
+void InputRouter::removeInputReceiver(InputReceiverInterface* inputReceiver)
+{
+    std::erase_if(mInputReceivers, [&](InputReceiverInterface* receiver)
+    {
+        return receiver == inputReceiver;
+    });
+}

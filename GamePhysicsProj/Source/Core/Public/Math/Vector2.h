@@ -9,11 +9,14 @@ struct Vector2
     Vector2 operator-(const Vector2& otherVector) const;
     Vector2 operator*(float number) const;
     Vector2 operator*(const Vector2& otherVector) const;
+    Vector2 operator/(const Vector2& otherVector) const;
     Vector2 operator/(float number) const;
     Vector2& operator+=(const Vector2& otherVector);
     Vector2& operator-=(const Vector2& otherVector);
     Vector2& operator*=(float number);
     Vector2& operator/=(float number);
+    Vector2& operator*=(const Vector2& otherVector);
+    Vector2& operator/=(const Vector2& otherVector);
     bool operator==(const Vector2& vector2) const;
 
     float dot(const Vector2& otherVector) const;
@@ -23,7 +26,7 @@ struct Vector2
     bool isAlmostZero(float tolerance = std::numeric_limits<float>::epsilon()) const;
 
     bool normalize();
-    bool normalize(float& outSize);
+    bool normalize(float& outOldSize);
     Vector2 getNormalized() const;
 
     std::string toString() const;

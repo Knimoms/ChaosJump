@@ -1,8 +1,10 @@
 #pragma once
 #include <memory>
 #include <set>
+#include <unordered_set>
 #include <vector>
 
+#include "Core/TickableInterface.h"
 #include "Math/Vector2.h"
 #include "Render/DrawableInterface.h"
 #include "SDL3/SDL_stdinc.h"
@@ -43,6 +45,7 @@ struct DisplayText
     std::string text;
     Color color = {1, 1, 1};
     float duration = 0.f;
+    Vector2 textScale = {1, 1}; 
     
     /* TopLeft Text border = {-1, -1}, bottom right = {1, 1}
      * This is the position in the DisplayText that aligns with the screenPosition.
@@ -111,6 +114,8 @@ private:
     std::vector<DebugLine> mDebugLines = {};
     std::vector<DisplayText> mDisplayTexts = {};
 
+    bool bPaused = false;
+
 protected:
     
     Application() = default;
@@ -134,9 +139,10 @@ public:
     void addDisplayText(const DisplayText& displayText);
     Vector2 getCurrentViewLocation() const;
     
+    void tickObjects(float deltaSeconds) const;
+    
 protected:
 
-    static void tickObjects(float deltaSeconds);
     void drawFrame(float deltaTime);
     void pollEvents();
     void handleEvent(const SDL_Event& event);

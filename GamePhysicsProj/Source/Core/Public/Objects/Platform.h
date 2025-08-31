@@ -6,5 +6,5 @@ class Platform : public Rectangle
 public:
 
     Platform();
-    
+
 };

@@ -18,5 +18,6 @@ public:
     void routeKeyEvent(SDL_Scancode scancode, bool pressed) const;
 
     void addInputReceiver(InputReceiverInterface* inputReceiver);
+    void removeInputReceiver(InputReceiverInterface* inputReceiver);
     
 };

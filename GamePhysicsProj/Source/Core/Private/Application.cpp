@@ -119,143 +119,9 @@ Application& Application::getApplication()
     return app;
 }
 
-template<class ObjectType>
-static std::shared_ptr<ObjectType> createRandomCollisionObject()
-{
-    return std::make_shared<ObjectType>();
-}
-
-template<>
-std::shared_ptr<Circle> createRandomCollisionObject()
-{
-    std::random_device dev;
-    std::mt19937 rng(dev());
-    std::uniform_int_distribution<> sizeDist(25, 75);
-    std::uniform_int_distribution<> colorDist(0,SDL_MAX_UINT8);
-
-    unsigned int size = sizeDist(rng);
-    std::shared_ptr<Circle> circle = std::make_shared<Circle>(size);
-
-    const Vector2& windowsSize = Application::getApplication().getWindowSize();
-
-    const float r = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
-    const float g = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
-    const float b = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
-    circle->setColor({.r = r, .g = g, .b = b});
-    circle->setCanCollideWithWindowBorder(true, true);
-    circle->setGravity({});
-    std::uniform_int_distribution<> locHeightDist(size,windowsSize.y - size);
-    std::uniform_int_distribution<> locWidthDist(size,windowsSize.x - size);
-
-    const Vector2 location = {static_cast<float>(locWidthDist(rng)), static_cast<float>(locHeightDist(rng))};
-    circle->setLocation(location);
-
-    std::uniform_int_distribution<> velocityDist(-1000,1000);
-    circle->setVelocity({static_cast<float>(velocityDist(rng)), static_cast<float>(velocityDist(rng))});
-
-    if (circle->getCurrentCollisionResult().bCollided)
-    {
-        return nullptr;
-    }
-
-    return circle;
-}
-
-template<>
-std::shared_ptr<Rectangle> createRandomCollisionObject()
-{
-    std::random_device dev;
-    std::mt19937 rng{dev()};
-    std::uniform_int_distribution<> sizeDist(25, 200);
-    std::uniform_int_distribution<> colorDist(0,SDL_MAX_UINT8);
-
-    unsigned int width = sizeDist(rng);
-    unsigned int height = sizeDist(rng);
-    std::shared_ptr<Rectangle> rectangle = std::make_shared<Rectangle>(width, height);
-
-    const Vector2& windowsSize = Application::getApplication().getWindowSize();
-
-    const float r = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
-    const float g = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
-    const float b = static_cast<float>(colorDist(rng)) / SDL_MAX_UINT8;
-    rectangle->setColor({.r = r, .g = g, .b = b});
-    rectangle->setCanCollideWithWindowBorder(true, true);
-    rectangle->setGravity({});
-    std::uniform_int_distribution<> locHeightDist(height,windowsSize.y - height);
-    std::uniform_int_distribution<> locWidthDist(width,windowsSize.x - width);
-
-    const Vector2 location = {static_cast<float>(locWidthDist(rng)), static_cast<float>(locHeightDist(rng))};
-    rectangle->setLocation(location);
-
-    std::uniform_int_distribution<> velocityDist(-1000,1000);
-    rectangle->setVelocity({static_cast<float>(velocityDist(rng)), static_cast<float>(velocityDist(rng))});
-
-    if (rectangle->getCurrentCollisionResult().bCollided)
-    {
-        return nullptr;
-    }
-
-    return rectangle;
-}
-
-template<class ObjectType>
-static std::vector<std::shared_ptr<ObjectType>> createRandomCollisionObjects(const uint32_t numObjects)
-{
-    std::vector<std::shared_ptr<ObjectType>> objects{};
-
-    for (uint32_t i = 0; i < numObjects; ++i)
-    {
-        std::shared_ptr<ObjectType> object = createRandomCollisionObject<ObjectType>();
-
-        if (!object)
-        {
-            --i;
-            continue;
-        }
-
-        objects.push_back(object);
-    }
-
-    return objects;
-}
-
 void Application::run()
 {
     bRunning = true;
-
-    //Polygon p({{50, 50} , {50, -70}, {-50, -50}, {-50, 50}});
-    //p.setLocation({400, 400});
-    //p.setVelocity({1000, 0});
-    //p.setMass(50);
-    //
-    //Polygon p2({{100, 50} , {50, -80}, {-50, 50}});
-    //p2.setCanCollideWithWindowBorder(true, true);
-    //p2.setGravity({});
-    //
-    //p2.setLocation({1000, 450});
-    //p2.setVelocity({-500, 0});
-    
-    //constexpr uint32_t circleCount = 2;
-    //std::vector<std::shared_ptr<Circle>> circles = createRandomCollisionObjects<Circle>(circleCount);
-    //
-    //constexpr uint32_t rectangleCount = 2;
-    //std::vector<std::shared_ptr<Rectangle>> rectangles = createRandomCollisionObjects<Rectangle>(rectangleCount);
-
-    //Rectangle rectangle {200, 200};
-//
-//    rectangle.setCanCollideWithWindowBorder(true, true);
-//    rectangle.setGravity({});
-//
-//    rectangle.setLocation({400, 500});
-//    rectangle.setVelocity({200, 0});
-
-    /*Rectangle rectangle2 {200, 100};
-
-    rectangle2.setCanCollideWithWindowBorder(true, true);
-    rectangle2.setGravity({});
-
-    rectangle2.setLocation({1200, 500});
-    rectangle2.setVelocity({-200, 0});*/
     uint64_t now = SDL_GetPerformanceCounter();
 
     while (bRunning)
@@ -293,13 +159,38 @@ Vector2 Application::getCurrentViewLocation() const
     return player ? player->getViewLocation() : Vector2{};
 }
 
-void Application::tickObjects(const float deltaSeconds)
+void Application::tickObjects(const float deltaSeconds) const
 {
-    const auto tickables = TickableInterface::sTickables;
-    for (TickableInterface* tickable : tickables)
+    if (bPaused) return;
+    
+    TickableInterface::bTickInProgress = true;
+    std::vector<int> destroyedTickableIndices;
+
+    const size_t tickableNum = TickableInterface::sTickables.size();
+    for (size_t i = tickableNum - 1; i < std::numeric_limits<size_t>::max(); --i)
     {
+        TickableInterface* tickable = TickableInterface::sTickables[i];
+        if (!tickable)
+        {
+            destroyedTickableIndices.push_back(static_cast<int>(i));
+            continue;
+        }
+        
         tickable->tick(deltaSeconds);
     }
+
+    for (const int i: destroyedTickableIndices)
+    {
+        TickableInterface::sTickables.erase(TickableInterface::sTickables.begin() + i);
+    }
+
+    while (!TickableInterface::sTickablesCreatedInTick.empty())
+    {
+        TickableInterface::sTickables.push_back(TickableInterface::sTickablesCreatedInTick.top());
+        TickableInterface::sTickablesCreatedInTick.pop();
+    }
+
+    TickableInterface::bTickInProgress = false;
 }
 
 static void setRenderDrawColor(SDL_Renderer* renderer, const Color& color)
@@ -308,22 +199,25 @@ static void setRenderDrawColor(SDL_Renderer* renderer, const Color& color)
     SDL_SetRenderDrawColorFloat(renderer, r, g, b, SDL_ALPHA_OPAQUE);
 }
 
-static void drawDisplayText(const DisplayText& displayText, SDL_Renderer* renderer, const Vector2& windowCenter)
+static void drawDisplayText(const DisplayText& displayText, SDL_Renderer* renderer, Vector2 windowCenter)
 {
-    auto& [screenPosition, text, color, duration, anchor] = displayText;
+    auto& [screenPosition, text, color, duration, textScale, anchor] = displayText;
 
-    const char *message = text.c_str();
+    windowCenter /= textScale;
 
     const Vector2 position = windowCenter + windowCenter * screenPosition;
 
-    const float halfTextWidth = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(message) / 2;
-    const float halfTextHeight = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE /2;
+    const char* textCharPtr = text.c_str();
+    const float halfTextWidth = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE * SDL_strlen(textCharPtr) / 2;
+    const float halfTextHeight = SDL_DEBUG_TEXT_FONT_CHARACTER_SIZE / 2;
 
     const float x = position.x - halfTextWidth - anchor.x * halfTextWidth;
     const float y = position.y - halfTextHeight - anchor.y * halfTextHeight;
                 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderDebugText(renderer, x, y, message);
+    SDL_SetRenderDrawColor(renderer, color.r * 255, color.g * 255, color.b * 255, 255);
+    SDL_SetRenderScale(renderer, textScale.x, textScale.y);
+    SDL_RenderDebugText(renderer, x, y, textCharPtr);
+    SDL_SetRenderScale(renderer, 1.f, 1.f);
 }
 
 void Application::drawFrame(const float deltaTime)
@@ -364,11 +258,22 @@ void Application::drawFrame(const float deltaTime)
         std::string messageStr = std::format("Current FPS: {:.2f}\n Average FPS: {:.2f}\n", mFrameTracker.getCurrentFPS(), mFrameTracker.getAverageFPS());
 
         DisplayText displayText;
-        displayText.text = messageStr;
+        displayText.text = messageStr.c_str();
         displayText.screenPosition = {.x = 1, .y = -1};
         displayText.alignment ={.x = 1, .y = -1};
 
         addDisplayText(displayText);
+    }
+
+    if (bPaused)
+    {
+        DisplayText pausedText;
+        pausedText.text = "PAUSED";
+        pausedText.screenPosition = {.x = -1, .y = -1};
+        pausedText.alignment ={.x = -1, .y = -1};
+        pausedText.textScale ={.x = 1.25, .y = 1.25};
+
+        addDisplayText(pausedText);
     }
     
     for (DisplayText& displayText : mDisplayTexts)
@@ -405,7 +310,19 @@ void Application::handleEvent(const SDL_Event& event)
         break;
     case SDL_EVENT_KEY_DOWN:
     case SDL_EVENT_KEY_UP:
-        mInputRouter->routeKeyEvent(event.key.scancode, SDL_EVENT_KEY_DOWN == eventType);
+        {
+            const SDL_Scancode scancode = event.key.scancode;
+            const bool bPressed = SDL_EVENT_KEY_DOWN == eventType;
+
+            if (scancode == SDL_SCANCODE_ESCAPE && bPressed)
+            {
+                bPaused = !bPaused;
+            }
+            else if (!bPaused)
+            {
+                mInputRouter->routeKeyEvent(scancode, bPressed);
+            }
+        }
         break;
     default: ;
     }

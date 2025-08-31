@@ -6,6 +6,8 @@
 #include "Math/Vector2.h"
 #include "Render/DrawableInterface.h"
 
+class CollisionObject;
+class Platform;
 class ChunkGenerator;
 class Rectangle;
 class Player;
@@ -15,16 +17,27 @@ class GameMode : public TickableInterface, public InputReceiverInterface
 
 private:
 
+    Vector2 mPlayerSpawnLocation = {.x = 0, .y = 500};
+
     std::unique_ptr<Player> mPlayer = nullptr;
     std::unique_ptr<ChunkGenerator> mChunkGenerator = nullptr;
 
-    
     float mChunkHeight = 0.f;
-    int mCurrentChunkHeightCoord = 0;
 
-    std::vector<std::unique_ptr<Rectangle>> mPlatforms = {};
+    std::vector<std::unique_ptr<Platform>> mPlatforms = {};
+    std::vector<std::unique_ptr<CollisionObject>> mObstacles = {};
 
     bool bStarted = false;
+    bool bGameOver = false;
+
+    float mGameTime = 0.f;
+
+    float mReachedHeight = 0.f;
+
+protected:
+
+    void clearDroppedPlatforms();
+    void clearObstaclesOutOfRange();
     
 public:
 
@@ -32,6 +45,7 @@ public:
     ~GameMode() override;
 
     virtual void startGame();
+    virtual void gameOver();
 
     //~Begin TickableInterface
     void tick(float deltaTime) override;

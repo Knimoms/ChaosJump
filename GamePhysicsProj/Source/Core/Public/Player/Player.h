@@ -1,12 +1,12 @@
 #pragma once
 #include "Physics/CollisionObject.h"
 #include "Input/InputReceiverInterface.h"
-#include "Objects/Rectangle.h"
+#include "Objects/Polygon.h"
 #include "SDL3/SDL_rect.h"
 
 class Camera;
 
-class Player : public Rectangle, public InputReceiverInterface
+class Player : public Polygon, public InputReceiverInterface
 {
 
 private:
@@ -15,7 +15,7 @@ private:
 
     float mMinJumpVelocity = 500.f;
 
-    float mSpeed = 5.f;
+    float mSpeed = 5000.f;
 
     SDL_FPoint mInputMovement = { 0, 0 };
 
@@ -28,6 +28,7 @@ protected:
 public:
 
     Vector2 getViewLocation() const;
+    bool isDead() const { return bDead; }
     
     Player(const Vector2& size, const Vector2& position);
     
