@@ -19,9 +19,9 @@ enum class CollisionCategory : uint32_t
 
 enum class CollisionResponse : uint32_t
 {
+    Ignore,
     Overlap,
-    Block,
-    Ignore
+    Block
 };
 
 struct CollisionResponseConfig
@@ -107,6 +107,8 @@ public:
     
     CollisionResult getCurrentCollisionResult() const;
     void setCanCollideWithWindowBorder(bool inCollideX, bool inCollideY);
+
+    CollisionResponse getCollisionResponseForCategory(CollisionCategory inCollisionCategory) const;
 
 private:
 
