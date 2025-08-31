@@ -228,6 +228,11 @@ void CollisionObject::setCanCollideWithWindowBorder(const bool inCollideX, const
     bCollideWindowY = inCollideY;
 }
 
+CollisionResponse CollisionObject::getCollisionResponseForCategory(const CollisionCategory inCollisionCategory) const
+{
+    return mCollisionResponseConfig[inCollisionCategory];
+}
+
 void CollisionObject::removeFromBucket()
 {
     auto& collisionCategoryBuckets = sCollisionCategoryBuckets[mCollisionCategory];
