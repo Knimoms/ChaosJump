@@ -766,9 +766,6 @@
     <ClInclude Include="Source\Core\Public\Render\Camera.h" />
     <ClInclude Include="Source\Core\Public\Render\DrawableInterface.h" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Source\Game\" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
