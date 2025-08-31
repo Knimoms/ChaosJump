@@ -152,9 +152,13 @@ void CollisionObject::moveTick(float deltaTime)
     {
         oldDensity = collisionObject->mDensity;
         oldVelocity = collisionObject->getVelocity();
-        
-        collisionObject->handleCollision(result.getInverted(this));
 
+        const CollisionResult inverted = result.getInverted(this);
+
+        if (inverted.bCollided)
+        {
+            collisionObject->handleCollision(result.getInverted(this));
+        }
     }
 
     float fallbackDensity;
