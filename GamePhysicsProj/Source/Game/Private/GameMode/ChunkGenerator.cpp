@@ -1,4 +1,4 @@
-﻿#include "Game/ChunkGenerator.h"
+﻿#include "GameMode/ChunkGenerator.h"
 
 #include <random>
 

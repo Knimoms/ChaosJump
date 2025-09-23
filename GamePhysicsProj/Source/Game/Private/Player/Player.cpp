@@ -34,11 +34,14 @@ Player::Player(const Vector2& size, const Vector2& position) : Polygon({size*Vec
     mDampingPerSecond = {5.f, 0.f};
     setLocation(position);
 
-    Vector2 cameraOffset = Application::getApplication().getWindowSize();
+    Application& app = Application::getApplication();
+    Vector2 cameraOffset = app.getWindowSize();
     cameraOffset.x *= -0.5f;
     cameraOffset.y *= -0.2f;
     
-    mCamera = std::make_unique<Camera>(cameraOffset, this);
+    mCamera = std::make_shared<Camera>(cameraOffset, this);
+
+    app.setRenderCamera(mCamera);
 
     constexpr bool bWindowXCollide = true;
     constexpr bool bWindowYCollide = true;

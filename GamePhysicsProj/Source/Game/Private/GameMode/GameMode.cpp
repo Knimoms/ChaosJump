@@ -1,9 +1,9 @@
-﻿#include "Game/GameMode.h"
+﻿#include "GameMode/GameMode.h"
 
 #include <format>
 
 #include "Application.h"
-#include "Game/ChunkGenerator.h"
+#include "GameMode/ChunkGenerator.h"
 #include "Input/InputRouter.h"
 #include "Objects/Platform.h"
 #include "Player/Player.h"

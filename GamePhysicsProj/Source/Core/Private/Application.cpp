@@ -5,15 +5,11 @@
 #include "SDL3/SDL.h"
 #include "Input/InputRouter.h"
 #include "Objects/Circle.h"
-#include "Objects/Rectangle.h"
 #include <random>
 #include <algorithm>
 
-#include "Core/TickableInterface.h"
+#include "Base/TickableInterface.h"
 #include "Debugging/DebugDefinitions.h"
-#include "Game/GameMode.h"
-#include "Objects/Polygon.h"
-#include "Player/Player.h"
 
 #define PRINT_SDL_ERROR(ErrorContext) std::cout << (ErrorContext) << std::format(": %s\n", SDL_GetError());
 #define SDL_FLAGS SDL_INIT_VIDEO
@@ -68,9 +64,8 @@ void RendererDeleter::operator()(SDL_Renderer* rawRenderer) const
     SDL_DestroyRenderer(rawRenderer);
 }
 
-Application::Application(const ApplicationParams& params) : mGameMode(std::make_unique<GameMode>()), mInputRouter(std::make_unique<InputRouter>())
+Application::Application(const ApplicationParams& params) :mInputRouter(std::make_unique<InputRouter>())
 {
-    mInputRouter->addInputReceiver(mGameMode.get());
     const auto [title, width, height, renderDriver, fps, bInDrawFPS] = params;
 
     mWindowSize = {.x = static_cast<float>(width), .y = static_cast<float>(height)};
@@ -110,7 +105,8 @@ Application::~Application()
 Application& Application::initApplication(const ApplicationParams& params)
 {
     sApplicationParams = params;
-    return getApplication();
+    Application& app = getApplication();
+    return app;
 }
 
 Application& Application::getApplication()
@@ -155,8 +151,16 @@ void Application::addDisplayText(const DisplayText& displayText)
 
 Vector2 Application::getCurrentViewLocation() const
 {
-    const Player* player = mGameMode ? mGameMode->getPlayer() : nullptr;
-    return player ? player->getViewLocation() : Vector2{};
+   if (const std::shared_ptr<Camera> camera = mRenderCamera.lock())
+   {
+       return camera->getCameraLocation();
+   }
+    return Vector2{};
+}
+
+void Application::setRenderCamera(const std::weak_ptr<Camera> inCamera)
+{
+    mRenderCamera = inCamera;
 }
 
 void Application::tickObjects(const float deltaSeconds) const

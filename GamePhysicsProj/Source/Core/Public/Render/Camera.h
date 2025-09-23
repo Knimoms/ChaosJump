@@ -1,7 +1,6 @@
 ﻿#pragma once
-#include <memory>
 
-#include "Core/TickableInterface.h"
+#include "Base/TickableInterface.h"
 #include "Math/Vector2.h"
 
 class CollisionObject;

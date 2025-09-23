@@ -1,20 +1,19 @@
 ﻿#pragma once
 #include <memory>
+#include <vector>
 
-#include "Core/TickableInterface.h"
+#include "Base/TickableInterface.h"
 #include "Input/InputReceiverInterface.h"
 #include "Math/Vector2.h"
-#include "Render/DrawableInterface.h"
+#include "SDL3/SDL_scancode.h"
 
 class CollisionObject;
 class Platform;
 class ChunkGenerator;
-class Rectangle;
 class Player;
 
 class GameMode : public TickableInterface, public InputReceiverInterface
 {
-
 private:
 
     Vector2 mPlayerSpawnLocation = {.x = 0, .y = 500};

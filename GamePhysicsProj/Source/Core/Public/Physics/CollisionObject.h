@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "CollisionShapeInterface.h"
-#include "Core/TickableInterface.h"
+#include "Base/TickableInterface.h"
 #include "Math/Vector2.h"
 
 class CollisionShapeInterface;

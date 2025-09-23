@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "GameMode/GameMode.h"
 
 constexpr const char* WINDOW_TITLE = "OpenWindow";
 constexpr int WINDOW_WIDTH = 1920;
@@ -13,6 +14,8 @@ int main(int argc, char *argv[])
     applicationParams.framesPerSecond = 0;
     
     Application& application = Application::initApplication(applicationParams);
+    GameMode GameMode;
+    application.getInputRouter()->addInputReceiver(&GameMode);
     application.run();
     
     return 0;

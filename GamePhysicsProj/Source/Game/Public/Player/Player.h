@@ -19,7 +19,7 @@ private:
 
     SDL_FPoint mInputMovement = { 0, 0 };
 
-    std::unique_ptr<Camera> mCamera = nullptr;
+    std::shared_ptr<Camera> mCamera = nullptr;
 
 protected:
 

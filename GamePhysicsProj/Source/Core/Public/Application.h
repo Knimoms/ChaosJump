@@ -1,11 +1,11 @@
 #pragma once
 #include <memory>
 #include <set>
-#include <unordered_set>
 #include <vector>
 
-#include "Core/TickableInterface.h"
+#include "Input/InputRouter.h"
 #include "Math/Vector2.h"
+#include "Render/Camera.h"
 #include "Render/DrawableInterface.h"
 #include "SDL3/SDL_stdinc.h"
 
@@ -97,8 +97,8 @@ private:
     std::unique_ptr<SDL_Window, WindowDeleter> mWindow = nullptr;
     std::unique_ptr<SDL_Renderer, RendererDeleter> mRenderer = nullptr;
 
-    std::unique_ptr<GameMode> mGameMode = nullptr;
     std::unique_ptr<InputRouter> mInputRouter = nullptr;
+    std::weak_ptr<Camera> mRenderCamera;
     
     bool bRunning = false;
 
@@ -130,6 +130,7 @@ public:
     uint64_t getFrameCount() const { return mFrameTracker.getFrameCounter(); }
 
     static Application& initApplication(const ApplicationParams& params);
+    
     static Application& getApplication();
 
     void run();
@@ -138,6 +139,7 @@ public:
     void addDebugLine(const DebugLine& debugLine);
     void addDisplayText(const DisplayText& displayText);
     Vector2 getCurrentViewLocation() const;
+    void setRenderCamera(std::weak_ptr<Camera> inCamera);
     
     void tickObjects(float deltaSeconds) const;
     
