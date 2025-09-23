@@ -10,6 +10,8 @@
 
 #include "Base/TickableInterface.h"
 #include "Debugging/DebugDefinitions.h"
+#include "Networking/NetHandler.h"
+#include "SteamSDK/public/steam/steam_api.h"
 
 #define PRINT_SDL_ERROR(ErrorContext) std::cout << (ErrorContext) << std::format(": %s\n", SDL_GetError());
 #define SDL_FLAGS SDL_INIT_VIDEO
@@ -62,9 +64,7 @@ void WindowDeleter::operator()(SDL_Window* rawWindow) const
 void RendererDeleter::operator()(SDL_Renderer* rawRenderer) const
 {
     SDL_DestroyRenderer(rawRenderer);
-}
-
-Application::Application(const ApplicationParams& params) :mInputRouter(std::make_unique<InputRouter>())
+}Application::Application(const ApplicationParams& params) : mInputRouter(std::make_unique<InputRouter>()), mNetHandler(std::make_unique<NetHandler>())
 {
     const auto [title, width, height, renderDriver, fps, bInDrawFPS] = params;
 
@@ -105,7 +105,7 @@ Application::~Application()
 Application& Application::initApplication(const ApplicationParams& params)
 {
     sApplicationParams = params;
-    Application& app = getApplication();
+    Application& app = getApplication();    
     return app;
 }
 
@@ -119,7 +119,7 @@ void Application::run()
 {
     bRunning = true;
     uint64_t now = SDL_GetPerformanceCounter();
-
+    
     while (bRunning)
     {
         uint64_t last = now;

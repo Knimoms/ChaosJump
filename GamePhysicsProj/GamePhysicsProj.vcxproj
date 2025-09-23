@@ -107,18 +107,20 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>/D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS/D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>
 		$(ProjectDir)Source\Core\Public;
  $(ProjectDir)Source\Game\Public; $(SolutionDir)SDL\include
- </AdditionalIncludeDirectories>
+  ;$(ProjectDir)Source\ThirdParty</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp23</LanguageStandard>
+      <AdditionalOptions>/D_CRT_SECURE_NO_WARNINGS /D_SCL_SECURE_NO_WARNINGS</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(ProjectDir)Source\ThirdParty\SteamSDK\redistributable_bin\win64\steam_api64.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -168,20 +170,7 @@
     <ClCompile Include="Source\Core\Private\Input\InputReceiverInterface.cpp" />
     <ClCompile Include="Source\Core\Private\Input\InputRouter.cpp" />
     <ClCompile Include="Source\Core\Private\Math\Vector2.cpp" />
-    <ClCompile Include="Source\Core\Private\Objects\Circle.cpp" />
-    <ClCompile Include="Source\Core\Private\Objects\Platform.cpp" />
-    <ClCompile Include="Source\Core\Private\Objects\Polygon.cpp" />
-    <ClCompile Include="Source\Core\Private\Objects\Rectangle.cpp" />
-    <ClCompile Include="Source\Core\Private\Physics\CollisionObject.cpp" />
-    <ClCompile Include="Source\Core\Private\Physics\CollisionShapeInterface.cpp" />
-    <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\CircleShape.cpp" />
-    <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\CollisionFunctions.cpp" />
-    <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\PolygonShape.cpp" />
-    <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\RectangleShape.cpp" />
-    <ClCompile Include="Source\Core\Private\Render\Camera.cpp" />
-    <ClCompile Include="Source\Core\Private\Render\DrawableInterface.cpp" />
-    <ClCompile Include="Source\Game\Private\GameMode\GameMode.cpp" />
-    <ClCompile Include="Source\Game\Private\GameMode\ChunkGenerator.cpp">
+    <ClCompile Include="Source\Core\Private\Networking\NetHandler.cpp">
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <Optimization>Disabled</Optimization>
@@ -258,9 +247,23 @@
       <AdditionalIncludeDirectories>
 		D:\dev\GamePhysicsProj\GamePhysicsProj\Source\Core\Public;
  D:\dev\GamePhysicsProj\GamePhysicsProj\Source\Game\Public; D:\dev\GamePhysicsProj\SDL\include
- </AdditionalIncludeDirectories>
+  ;D:\dev\GamePhysicsProj\GamePhysicsProj\Source\ThirdParty</AdditionalIncludeDirectories>
       <LinkCompiled>true</LinkCompiled>
     </ClCompile>
+    <ClCompile Include="Source\Core\Private\Objects\Circle.cpp" />
+    <ClCompile Include="Source\Core\Private\Objects\Platform.cpp" />
+    <ClCompile Include="Source\Core\Private\Objects\Polygon.cpp" />
+    <ClCompile Include="Source\Core\Private\Objects\Rectangle.cpp" />
+    <ClCompile Include="Source\Core\Private\Physics\CollisionObject.cpp" />
+    <ClCompile Include="Source\Core\Private\Physics\CollisionShapeInterface.cpp" />
+    <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\CircleShape.cpp" />
+    <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\CollisionFunctions.cpp" />
+    <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\PolygonShape.cpp" />
+    <ClCompile Include="Source\Core\Private\Physics\CollisionShapes\RectangleShape.cpp" />
+    <ClCompile Include="Source\Core\Private\Render\Camera.cpp" />
+    <ClCompile Include="Source\Core\Private\Render\DrawableInterface.cpp" />
+    <ClCompile Include="Source\Game\Private\GameMode\GameMode.cpp" />
+    <ClCompile Include="Source\Game\Private\GameMode\ChunkGenerator.cpp" />
     <ClCompile Include="Source\Game\Private\Player\Player.cpp" />
     <ClCompile Include="Source\Game\Private\Main.cpp" />
   </ItemGroup>
@@ -277,6 +280,7 @@
     <ClInclude Include="Source\Core\Public\Input\InputReceiverInterface.h" />
     <ClInclude Include="Source\Core\Public\Input\InputRouter.h" />
     <ClInclude Include="Source\Core\Public\Math\Vector2.h" />
+    <ClInclude Include="Source\Core\Public\Networking\NetHandler.h" />
     <ClInclude Include="Source\Core\Public\Objects\Circle.h" />
     <ClInclude Include="Source\Core\Public\Objects\Platform.h" />
     <ClInclude Include="Source\Core\Public\Objects\Polygon.h" />
@@ -291,6 +295,68 @@
     <ClInclude Include="Source\Game\Public\GameMode\GameMode.h" />
     <ClInclude Include="Source\Game\Public\GameMode\ChunkGenerator.h" />
     <ClInclude Include="Source\Game\Public\Player\Player.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamapps.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamappticket.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamclient.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamcontroller.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamdualsense.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamfriends.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamgamecoordinator.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamgameserver.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamgameserverstats.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamhtmlsurface.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamhttp.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteaminput.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteaminventory.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteammatchmaking.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteammusic.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteammusicremote.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamnetworking.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamnetworkingmessages.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamnetworkingsockets.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamnetworkingutils.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamparentalsettings.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamps3overlayrenderer.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamremoteplay.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamremotestorage.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamscreenshots.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamtimeline.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamugc.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamuser.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamuserstats.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamutils.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\isteamvideo.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\matchmakingtypes.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steamclientpublic.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steamencryptedappticket.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steamhttpenums.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steamnetworkingfakeip.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steamnetworkingtypes.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steamps3params.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steamtypes.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steamuniverse.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steam_api.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steam_api_common.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steam_api_flat.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steam_api_internal.h" />
+    <ClInclude Include="Source\ThirdParty\SteamSDK\public\steam\steam_gameserver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Source\ThirdParty\SteamSDK\public\steam\lib\linux32\libsdkencryptedappticket.so" />
+    <Content Include="Source\ThirdParty\SteamSDK\public\steam\lib\linux64\libsdkencryptedappticket.so" />
+    <Content Include="Source\ThirdParty\SteamSDK\public\steam\lib\osx\libsdkencryptedappticket.dylib" />
+    <Content Include="Source\ThirdParty\SteamSDK\public\steam\lib\win32\sdkencryptedappticket.dll" />
+    <Content Include="Source\ThirdParty\SteamSDK\public\steam\lib\win32\sdkencryptedappticket.lib" />
+    <Content Include="Source\ThirdParty\SteamSDK\public\steam\lib\win64\sdkencryptedappticket64.dll" />
+    <Content Include="Source\ThirdParty\SteamSDK\public\steam\lib\win64\sdkencryptedappticket64.lib" />
+    <Content Include="Source\ThirdParty\SteamSDK\public\steam\steam_api.json" />
+    <Content Include="Source\ThirdParty\SteamSDK\redistributable_bin\linux32\libsteam_api.so" />
+    <Content Include="Source\ThirdParty\SteamSDK\redistributable_bin\linux64\libsteam_api.so" />
+    <Content Include="Source\ThirdParty\SteamSDK\redistributable_bin\osx\libsteam_api.dylib" />
+    <Content Include="Source\ThirdParty\SteamSDK\redistributable_bin\steam_api.dll" />
+    <Content Include="Source\ThirdParty\SteamSDK\redistributable_bin\steam_api.lib" />
+    <Content Include="Source\ThirdParty\SteamSDK\redistributable_bin\win64\steam_api64.dll" />
+    <Content Include="Source\ThirdParty\SteamSDK\redistributable_bin\win64\steam_api64.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

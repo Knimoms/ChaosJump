@@ -9,6 +9,7 @@
 #include "Render/DrawableInterface.h"
 #include "SDL3/SDL_stdinc.h"
 
+class NetHandler;
 class GameMode;
 class CollisionShapeInterface;
 class SDL_Window;
@@ -98,6 +99,7 @@ private:
     std::unique_ptr<SDL_Renderer, RendererDeleter> mRenderer = nullptr;
 
     std::unique_ptr<InputRouter> mInputRouter = nullptr;
+    std::unique_ptr<NetHandler> mNetHandler = nullptr;
     std::weak_ptr<Camera> mRenderCamera;
     
     bool bRunning = false;
