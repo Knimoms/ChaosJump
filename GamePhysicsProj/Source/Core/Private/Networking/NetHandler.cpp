@@ -29,7 +29,7 @@ void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback
     case k_ESteamNetworkingConnectionState_Connecting:
         sockets->AcceptConnection(pParam->m_hConn);
         sockets->SetConnectionPollGroup(pParam->m_hConn, mPollGroup);
-        mConnectionMap[pParam->m_info.m_identityRemote.GetSteamID64()] = pParam->m_hConn;
+        mClientConnections.push_back(pParam->m_hConn);
         {
             const char hello[] = "hello whats up";
             sockets->SendMessageToConnection(pParam->m_hConn, hello, static_cast<int>(strlen(hello)), k_nSteamNetworkingSend_Reliable, nullptr);
@@ -40,7 +40,7 @@ void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback
     case k_ESteamNetworkingConnectionState_ClosedByPeer:
     case k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
         sockets->CloseConnection(pParam->m_hConn, 0, nullptr, false);
-        mConnectionMap.erase(pParam->m_hConn);
+        std::erase(mClientConnections, pParam->m_hConn);
         
         printf("Client disconnected or problem.\n");
         break;
@@ -145,7 +145,7 @@ void NetHandler::runCallbacks()
 
         if (now - mLastHeartbeat > 5000000)
         {
-            for (const auto& connection : mConnectionMap | std::views::values)
+            for (const auto& connection : mClientConnections)
             {
                 const char* msg = "test";
                 SteamNetworkingSockets()->SendMessageToConnection(connection, msg, static_cast<int>(strlen(msg)), k_nSteamNetworkingSend_Unreliable, nullptr);

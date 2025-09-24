@@ -1,5 +1,6 @@
 ﻿#pragma once
-#include <map>
+
+#include <vector>
 
 #include "SteamSDK/public/steam/steam_api.h"
 
@@ -15,7 +16,7 @@ private:
 
 
     bool bHosting = false;
-    std::map<uint64_t, HSteamNetConnection> mConnectionMap = {};
+    std::vector<HSteamNetConnection> mClientConnections = {};
 
     
     bool bConnectedAsClient = false;
