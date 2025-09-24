@@ -1,5 +1,6 @@
 ﻿#include "Networking/NetHandler.h"
 
+#include <ranges>
 #include <string>
 
 NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
@@ -40,6 +41,7 @@ void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback
 void NetHandler::handleGameLobbyJoinRequested(GameLobbyJoinRequested_t* pParam)
 {
     SteamMatchmaking()->JoinLobby(pParam->m_steamIDLobby);
+    bConnectedAsClient = true;
 }
 
 void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t* pParam)
@@ -48,7 +50,8 @@ void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequest
     SteamNetworkingIdentity id;
     id.SetSteamID(host);
 
-    mConnectionMap[pParam->m_steamIDFriend.ConvertToUint64()] = SteamNetworkingSockets()->ConnectP2P(id, mVirtualPort, 0, nullptr);
+    mServerConnection = SteamNetworkingSockets()->ConnectP2P(id, mVirtualPort, 0, nullptr);
+    bConnectedAsClient = true;
 }
 
 void NetHandler::host()
@@ -127,10 +130,24 @@ void NetHandler::runCallbacks()
     {
         uint64_t now = SteamNetworkingUtils()->GetLocalTimestamp();
 
-        if (now - mLastHeartbeat > 5'000'000) {
+        if (now - mLastHeartbeat > 5000000) {
             const char* msg = "ping";
             SteamNetworkingSockets()->SendMessageToConnection(mServerConnection, msg, static_cast<int>(strlen(msg)), k_nSteamNetworkingSend_Unreliable, nullptr);
             mLastHeartbeat = now;
+        }
+    }
+    else if (bHosting)
+    {
+        uint64_t now = SteamNetworkingUtils()->GetLocalTimestamp();
+
+        if (now - mLastHeartbeat > 5000000)
+        {
+            for (const auto& connection : mConnectionMap | std::views::values)
+            {
+                const char* msg = "test";
+                SteamNetworkingSockets()->SendMessageToConnection(connection, msg, static_cast<int>(strlen(msg)), k_nSteamNetworkingSend_Unreliable, nullptr);
+                mLastHeartbeat = now;
+            }
         }
     }
 }
