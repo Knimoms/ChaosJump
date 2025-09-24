@@ -13,10 +13,10 @@ NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGam
     mCallbackConnStatusChanged.Register(this, &NetHandler::handleConnStatusChanged);
 
     SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Msg,
-                                                   [](ESteamNetworkingSocketsDebugOutputType, const char* msg)
-                                                   {
-                                                       fprintf(stderr, "[SNS] %s\n", msg);
-                                                   });
+       [](ESteamNetworkingSocketsDebugOutputType, const char* msg)
+       {
+           fprintf(stderr, "[SNS] %s\n", msg);
+       });
 }
 
 void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
@@ -113,9 +113,7 @@ void NetHandler::receiveMessages() const
                 auto* m = msgs[i];
                 const void* data = m->m_pData;
                 int len = m->m_cbSize;
-
-                // HandleServerMessage(data, len);
-
+                
                 std::string msg(static_cast<char*>(m->m_pData), m->m_cbSize);
                 fprintf(stderr, "Received %s\n", msg.c_str());
 
