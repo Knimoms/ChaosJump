@@ -1,48 +1,82 @@
 ﻿#include "Networking/NetHandler.h"
 
-#include "SteamSDK/public/steam/steam_api.h"
+#include <string>
 
-NetHandler::NetHandler()
+NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
 {
     SteamAPI_Init();
     SteamNetworkingUtils()->InitRelayNetworkAccess();
 
+    mCallbackConnStatusChanged.Register(this, &NetHandler::handleConnStatusChanged);
+
     SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Msg,
-    [](ESteamNetworkingSocketsDebugOutputType, const char* msg){
-        fprintf(stderr, "[SNS] %s\n", msg);
-    });
+                                                   [](ESteamNetworkingSocketsDebugOutputType, const char* msg)
+                                                   {
+                                                       fprintf(stderr, "[SNS] %s\n", msg);
+                                                   });
 }
 
-void NetHandler::HostLocal()
+void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
 {
-    SteamNetworkingIPAddr addr; addr.Clear();
-    addr.m_port = 27020; // any free port
+    fprintf(stderr, "Connection changed %d", pParam->m_info.m_eState);
 
-    // Listen for P2P on a "virtual port" (just a number you choose)
-    const int kVirtualPort = 1;
-    auto listenSocket = SteamNetworkingSockets()->CreateListenSocketIP(addr, 0, nullptr);
-
-    HSteamNetPollGroup poll = SteamNetworkingSockets()->CreatePollGroup();
-    SteamNetworkingMessage_t* msgs[32];
-
-    while (true) {
-        
-        int n = SteamNetworkingSockets()->ReceiveMessagesOnPollGroup(poll, msgs, 32);
-        for (int i = 0; i < n; ++i) {
-            auto* m = msgs[i];
-            
-            SteamNetworkingSockets()->SendMessageToConnection(m->m_conn, m->m_pData, m->m_cbSize, k_nSteamNetworkingSend_Unreliable, nullptr);
-            m->Release();
-        }
-
-        SteamAPI_RunCallbacks(); 
+    auto* sockets = SteamNetworkingSockets();
+    
+    switch (pParam->m_info.m_eState) {
+    case k_ESteamNetworkingConnectionState_Connecting:
+        sockets->AcceptConnection(pParam->m_hConn);
+        sockets->SetConnectionPollGroup(pParam->m_hConn, mPollGroup);
+        printf("Client connected!\n");
+        break;
+    case k_ESteamNetworkingConnectionState_ClosedByPeer:
+    case k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
+        sockets->CloseConnection(pParam->m_hConn, 0, nullptr, false);
+        printf("Client disconnected or problem.\n");
+        break;
+    default: break;
     }
 }
 
-void NetHandler::ConnectLocalInstance()
+void NetHandler::handleGameLobbyJoinRequested(GameLobbyJoinRequested_t* pParam)
 {
-    SteamNetworkingIPAddr server;
-    server.ParseString("127.0.0.1");
-    server.m_port = 27020;
-    auto conn = SteamNetworkingSockets()->ConnectByIPAddress(server, 0, nullptr);
+    SteamMatchmaking()->JoinLobby(pParam->m_steamIDLobby);
+}
+
+void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t* pParam)
+{
+    CSteamID host = pParam->m_steamIDFriend;
+    SteamNetworkingIdentity id;
+    id.SetSteamID(host);
+
+    mConnectionMap[pParam->m_steamIDFriend.ConvertToUint64()] = SteamNetworkingSockets()->ConnectP2P(id, mVirtualPort, 0, nullptr);
+}
+
+void NetHandler::host()
+{
+    SteamNetworkingIPAddr addr;
+    addr.Clear();
+    addr.m_port = 27020;
+
+    constexpr int virtualPort = 1;
+    mListenSocket = SteamNetworkingSockets()->CreateListenSocketP2P(virtualPort, 0, nullptr);
+    mPollGroup = SteamNetworkingSockets()->CreatePollGroup();
+
+    SteamFriends()->SetRichPresence("connect", std::to_string(SteamUser()->GetSteamID().ConvertToUint64()).c_str());
+
+    bHosting = true;
+}
+
+void NetHandler::connect()
+{
+    SteamNetworkingIPAddr serverAddr;
+    serverAddr.ParseString("127.0.0.1");
+    serverAddr.m_port = 27020;
+
+    HSteamNetConnection conn = SteamNetworkingSockets()->ConnectByIPAddress(serverAddr, 0, nullptr);
+    bConnectedAsClient = true;
+}
+
+void NetHandler::tick(float deltaTime)
+{
+    SteamAPI_RunCallbacks();
 }
