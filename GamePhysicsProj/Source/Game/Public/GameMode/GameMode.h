@@ -46,6 +46,9 @@ public:
     virtual void startGame();
     virtual void gameOver();
 
+    static void hostSession();
+    static void connectToSession();
+
     //~Begin TickableInterface
     void tick(float deltaTime) override;
     //~End TickableInterface

@@ -5,6 +5,7 @@
 #include "Application.h"
 #include "GameMode/ChunkGenerator.h"
 #include "Input/InputRouter.h"
+#include "Networking/NetHandler.h"
 #include "Objects/Platform.h"
 #include "Player/Player.h"
 #include "SDL3/SDL_render.h"
@@ -75,6 +76,16 @@ void GameMode::gameOver()
 
     Application& app = Application::getApplication();
     app.getInputRouter()->removeInputReceiver(getPlayer());    
+}
+
+void GameMode::hostSession()
+{
+    Application::getApplication().getNetHandler()->host();
+}
+
+void GameMode::connectToSession()
+{
+    Application::getApplication().getNetHandler()->connect();
 }
 
 void GameMode::tick(const float deltaTime)
@@ -156,6 +167,18 @@ void GameMode::tick(const float deltaTime)
 
 void GameMode::handleKeyPressed(const SDL_Scancode scancode)
 {
+    switch (scancode)
+    {
+    case SDL_SCANCODE_C:
+        connectToSession();
+        return;
+    case SDL_SCANCODE_H:
+        hostSession();
+        return;
+    default:
+        ;
+    }
+    
     if (!bStarted)
     {
         startGame();

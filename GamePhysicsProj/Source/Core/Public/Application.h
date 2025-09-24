@@ -128,6 +128,7 @@ protected:
 public:
 
     InputRouter* getInputRouter() const { return mInputRouter.get(); }
+    NetHandler* getNetHandler() const { return mNetHandler.get(); }
 
     uint64_t getFrameCount() const { return mFrameTracker.getFrameCounter(); }
 
