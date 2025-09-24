@@ -29,7 +29,11 @@ void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback
     case k_ESteamNetworkingConnectionState_Connecting:
         sockets->AcceptConnection(pParam->m_hConn);
         sockets->SetConnectionPollGroup(pParam->m_hConn, mPollGroup);
-        mConnectionMap[pParam->m_hConn] = pParam->m_info.m_identityRemote.GetSteamID64();
+        mConnectionMap[pParam->m_info.m_identityRemote.GetSteamID64()] = pParam->m_hConn;
+        {
+            const char hello[] = "hello whats up";
+            sockets->SendMessageToConnection(pParam->m_hConn, hello, static_cast<int>(strlen(hello)), k_nSteamNetworkingSend_Reliable, nullptr);
+        }
         
         printf("Client connected!\n");
         break;
@@ -62,12 +66,7 @@ void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequest
 
 void NetHandler::host()
 {
-    SteamNetworkingIPAddr addr;
-    addr.Clear();
-    addr.m_port = 27020;
-
-    constexpr int virtualPort = 1;
-    mListenSocket = SteamNetworkingSockets()->CreateListenSocketP2P(virtualPort, 0, nullptr);
+    mListenSocket = SteamNetworkingSockets()->CreateListenSocketP2P(mVirtualPort, 0, nullptr);
     mPollGroup = SteamNetworkingSockets()->CreatePollGroup();
 
     SteamFriends()->SetRichPresence("connect", std::to_string(SteamUser()->GetSteamID().ConvertToUint64()).c_str());
@@ -106,6 +105,7 @@ void NetHandler::receiveMessages() const
         SteamNetworkingMessage_t* msgs[32];
         for (;;) {
             const int messagesNum = SteamNetworkingSockets()->ReceiveMessagesOnConnection(mServerConnection, msgs, 32);
+
             if (messagesNum == 0) break;
             if (!ensure(messagesNum >= 0)) { break; }
 
