@@ -64,7 +64,11 @@ void WindowDeleter::operator()(SDL_Window* rawWindow) const
 void RendererDeleter::operator()(SDL_Renderer* rawRenderer) const
 {
     SDL_DestroyRenderer(rawRenderer);
-}Application::Application(const ApplicationParams& params) : mInputRouter(std::make_unique<InputRouter>()), mNetHandler(std::make_unique<NetHandler>())
+}
+
+DEFINE_DEFAULT_DELETER(NetHandler)
+
+Application::Application(const ApplicationParams& params) : mInputRouter(std::make_unique<InputRouter>()), mNetHandler(std::unique_ptr<NetHandler, NetHandlerDeleter>(new NetHandler()))
 {
     const auto [title, width, height, renderDriver, fps, bInDrawFPS] = params;
 

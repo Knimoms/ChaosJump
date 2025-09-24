@@ -3,6 +3,7 @@
 #include <set>
 #include <vector>
 
+#include "Base/HelperDefinitions.h"
 #include "Input/InputRouter.h"
 #include "Math/Vector2.h"
 #include "Render/Camera.h"
@@ -15,6 +16,7 @@ class CollisionShapeInterface;
 class SDL_Window;
 class SDL_Renderer;
 class InputRouter;
+class NetHandler;
 union SDL_Event;
 
 struct ApplicationParams
@@ -91,6 +93,8 @@ struct RendererDeleter
     void operator()(SDL_Renderer* rawRenderer) const;
 };
 
+DECLARE_DEFAULT_DELETER(NetHandler)
+
 class Application
 {
 private:
@@ -99,7 +103,7 @@ private:
     std::unique_ptr<SDL_Renderer, RendererDeleter> mRenderer = nullptr;
 
     std::unique_ptr<InputRouter> mInputRouter = nullptr;
-    std::unique_ptr<NetHandler> mNetHandler = nullptr;
+    std::unique_ptr<NetHandler, NetHandlerDeleter> mNetHandler = nullptr;
     std::weak_ptr<Camera> mRenderCamera;
     
     bool bRunning = false;

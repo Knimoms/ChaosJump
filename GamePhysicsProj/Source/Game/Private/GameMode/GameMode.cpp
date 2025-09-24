@@ -3,12 +3,16 @@
 #include <format>
 
 #include "Application.h"
+#include "Base/HelperDefinitions.h"
 #include "GameMode/ChunkGenerator.h"
 #include "Input/InputRouter.h"
 #include "Networking/NetHandler.h"
 #include "Objects/Platform.h"
 #include "Player/Player.h"
 #include "SDL3/SDL_render.h"
+
+DEFINE_DEFAULT_DELETER(ChunkGenerator)
+DEFINE_DEFAULT_DELETER(Player)
 
 void GameMode::clearDroppedPlatforms()
 {
@@ -52,8 +56,8 @@ void GameMode::startGame()
     mReachedHeight = 0.f;
     
     constexpr Vector2 size {.x = 1, .y = 1};
-    
-    mPlayer = std::make_unique<Player>(size, mPlayerSpawnLocation);
+
+    mPlayer = std::unique_ptr<Player, PlayerDeleter>(new Player(size, mPlayerSpawnLocation));
 
     std::unique_ptr<Platform> platform = std::make_unique<Platform>();
     platform->setLocation(mPlayerSpawnLocation + Vector2{.x = 0, .y = 300});
@@ -61,7 +65,7 @@ void GameMode::startGame()
 
     Application& app = Application::getApplication();
     const Vector2& windowSize = app.getWindowSize();
-    mChunkGenerator = std::make_unique<ChunkGenerator>(windowSize, 8);
+    mChunkGenerator = std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter>(new ChunkGenerator(windowSize, 8));
 
     mChunkGenerator->generateChunk(0, mPlatforms, mObstacles);
     
