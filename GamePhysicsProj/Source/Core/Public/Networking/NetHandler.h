@@ -1,10 +1,9 @@
 ﻿#pragma once
 #include <map>
 
-#include "Base/TickableInterface.h"
 #include "SteamSDK/public/steam/steam_api.h"
 
-class NetHandler : public TickableInterface
+class NetHandler
 {
 
 private:
@@ -14,10 +13,14 @@ private:
     HSteamListenSocket mListenSocket;
     HSteamNetPollGroup mPollGroup;
 
-    std::map<uint64_t, HSteamNetConnection> mConnectionMap = {};
 
     bool bHosting = false;
+    std::map<uint64_t, HSteamNetConnection> mConnectionMap = {};
+
+    
     bool bConnectedAsClient = false;
+    HSteamNetConnection mServerConnection;
+    uint64_t mLastHeartbeat = 0;
 
 protected:
 
@@ -28,13 +31,12 @@ protected:
 public:
 
     NetHandler();
-    virtual ~NetHandler() = default;
 
     void host();
     void connect();
 
-    //~ Begin TickableInterface
-    void tick(float deltaTime) override;
-    //~ End TickableInterface
+    void receiveMessages() const;
+
+    void runCallbacks();
     
 };

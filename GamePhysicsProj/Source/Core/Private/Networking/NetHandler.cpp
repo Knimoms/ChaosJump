@@ -72,11 +72,65 @@ void NetHandler::connect()
     serverAddr.ParseString("127.0.0.1");
     serverAddr.m_port = 27020;
 
-    HSteamNetConnection conn = SteamNetworkingSockets()->ConnectByIPAddress(serverAddr, 0, nullptr);
+    mServerConnection = SteamNetworkingSockets()->ConnectByIPAddress(serverAddr, 0, nullptr);
     bConnectedAsClient = true;
 }
 
-void NetHandler::tick(float deltaTime)
+void NetHandler::receiveMessages() const
+{
+    if (bHosting)
+    {
+        SteamNetworkingMessage_t* msgs[64];
+        for (;;) {
+            int n = SteamNetworkingSockets()->ReceiveMessagesOnPollGroup(mPollGroup, msgs, 64);
+            if (n == 0) break;          // no more messages right now
+            if (n < 0) { /* error */ break; }
+
+            for (int i = 0; i < n; ++i) {
+                auto* m = msgs[i];
+                HSteamNetConnection from = m->m_conn;
+                const void* data = m->m_pData;
+                int len = m->m_cbSize;
+
+                std::string msg(static_cast<char*>(m->m_pData), m->m_cbSize);
+                fprintf(stderr, "Received %s\n", msg.c_str());
+                m->Release();
+            }
+        }
+    }
+    else if (bConnectedAsClient)
+    {
+        SteamNetworkingMessage_t* msgs[32];
+        for (;;) {
+            const int messagesNum = SteamNetworkingSockets()->ReceiveMessagesOnConnection(mServerConnection, msgs, 32);
+            if (messagesNum == 0) break;
+            if (messagesNum < 0) { break; }
+
+            for (int i = 0; i < messagesNum; ++i) {
+                auto* m = msgs[i];
+                const void* data = m->m_pData;
+                int len = m->m_cbSize;
+
+                // HandleServerMessage(data, len);
+
+                m->Release();
+            }
+        }
+    }
+}
+
+void NetHandler::runCallbacks()
 {
     SteamAPI_RunCallbacks();
+
+    if (bConnectedAsClient)
+    {
+        uint64_t now = SteamNetworkingUtils()->GetLocalTimestamp();
+
+        if (now - mLastHeartbeat > 5'000'000) {
+            const char* msg = "ping";
+            SteamNetworkingSockets()->SendMessageToConnection(mServerConnection, msg, static_cast<int>(strlen(msg)), k_nSteamNetworkingSend_Unreliable, nullptr);
+            mLastHeartbeat = now;
+        }
+    }
 }

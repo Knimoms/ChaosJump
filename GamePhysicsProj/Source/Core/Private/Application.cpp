@@ -126,6 +126,8 @@ void Application::run()
     
     while (bRunning)
     {
+        mNetHandler->receiveMessages();
+        
         uint64_t last = now;
         now = SDL_GetPerformanceCounter();
         const float deltaTime = static_cast<float>(now - last) / SDL_GetPerformanceFrequency();
@@ -134,6 +136,7 @@ void Application::run()
         
         pollEvents();
         tickObjects(deltaTime);
+        mNetHandler->runCallbacks();
         drawFrame(deltaTime);
 
         if (mFrameTime)
