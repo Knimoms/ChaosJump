@@ -3,6 +3,8 @@
 #include <ranges>
 #include <string>
 
+#include "Debugging/DebugDefinitions.h"
+
 NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
 {
     SteamAPI_Init();
@@ -27,11 +29,15 @@ void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback
     case k_ESteamNetworkingConnectionState_Connecting:
         sockets->AcceptConnection(pParam->m_hConn);
         sockets->SetConnectionPollGroup(pParam->m_hConn, mPollGroup);
+        mConnectionMap[pParam->m_hConn] = pParam->m_info.m_identityRemote.GetSteamID64();
+        
         printf("Client connected!\n");
         break;
     case k_ESteamNetworkingConnectionState_ClosedByPeer:
     case k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
         sockets->CloseConnection(pParam->m_hConn, 0, nullptr, false);
+        mConnectionMap.erase(pParam->m_hConn);
+        
         printf("Client disconnected or problem.\n");
         break;
     default: break;
@@ -71,12 +77,6 @@ void NetHandler::host()
 
 void NetHandler::connect()
 {
-    SteamNetworkingIPAddr serverAddr;
-    serverAddr.ParseString("127.0.0.1");
-    serverAddr.m_port = 27020;
-
-    mServerConnection = SteamNetworkingSockets()->ConnectByIPAddress(serverAddr, 0, nullptr);
-    bConnectedAsClient = true;
 }
 
 void NetHandler::receiveMessages() const
@@ -107,7 +107,7 @@ void NetHandler::receiveMessages() const
         for (;;) {
             const int messagesNum = SteamNetworkingSockets()->ReceiveMessagesOnConnection(mServerConnection, msgs, 32);
             if (messagesNum == 0) break;
-            if (messagesNum < 0) { break; }
+            if (!ensure(messagesNum >= 0)) { break; }
 
             for (int i = 0; i < messagesNum; ++i) {
                 auto* m = msgs[i];
@@ -115,6 +115,9 @@ void NetHandler::receiveMessages() const
                 int len = m->m_cbSize;
 
                 // HandleServerMessage(data, len);
+
+                std::string msg(static_cast<char*>(m->m_pData), m->m_cbSize);
+                fprintf(stderr, "Received %s\n", msg.c_str());
 
                 m->Release();
             }
