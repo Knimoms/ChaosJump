@@ -1,8 +1,28 @@
 ﻿#pragma once
 
+#include <string>
 #include <vector>
 
 #include "SteamSDK/public/steam/steam_api.h"
+
+
+struct NetPacket
+{
+
+    struct Header
+    {
+        uint8_t type;
+        uint32_t size;
+        uint64_t timestamp;
+    };
+    
+    Header header;
+    std::string body;
+
+    NetPacket(uint8_t inType, const std::string& inBody);
+    NetPacket(const void* data, int size);
+    std::string toString() const;
+};
 
 class NetHandler
 {

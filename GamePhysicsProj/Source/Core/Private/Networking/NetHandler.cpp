@@ -1,5 +1,7 @@
 ﻿#include "Networking/NetHandler.h"
 
+#include <chrono>
+#include <format>
 #include <ranges>
 #include <string>
 
@@ -17,6 +19,37 @@ NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGam
        {
            fprintf(stderr, "[SNS] %s\n", msg);
        });
+}
+
+NetPacket::NetPacket(uint8_t inType, const std::string& inBody) : body(inBody)
+{
+    header.type = inType;
+    header.size = body.size();
+    header.timestamp = SteamNetworkingUtils()->GetLocalTimestamp();
+    
+}
+
+NetPacket::NetPacket(const void* data, const int size)
+{
+    if (!ensure(size > sizeof(Header))) return;
+    
+    memcpy(&header, data, sizeof(Header));
+
+    if (!ensure(size > sizeof(Header) + header.size)) return;
+    
+    const char* bodycstring = static_cast<const char*>(data) + sizeof(Header);
+    body.assign(bodycstring, header.size);
+}
+
+std::string NetPacket::toString() const
+{
+    std::string packageString;
+    packageString.resize(sizeof(header) + body.size());
+
+    memcpy(packageString.data(), &header, sizeof(header));
+    memcpy(packageString.data() + sizeof(header), body.data(), body.size());
+
+    return packageString;
 }
 
 void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
@@ -110,7 +143,7 @@ void NetHandler::receiveMessages() const
             if (!ensure(messagesNum >= 0)) { break; }
 
             for (int i = 0; i < messagesNum; ++i) {
-                auto* m = msgs[i];
+                SteamNetworkingMessage_t* m = msgs[i];
                 const void* data = m->m_pData;
                 int len = m->m_cbSize;
                 
