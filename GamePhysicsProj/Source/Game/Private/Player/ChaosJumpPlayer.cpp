@@ -40,19 +40,6 @@ ChaosJumpPlayer::ChaosJumpPlayer(const Vector2& size, const Vector2& position) :
     setCollisionCategory(CollisionCategory::Player);
     mDampingPerSecond = {5.f, 0.f};
     setLocation(position);
-
-    Application& app = Application::getApplication();
-    Vector2 cameraOffset = app.getWindowSize();
-    cameraOffset.x *= -0.5f;
-    cameraOffset.y *= -0.2f;
-    
-    mCamera = std::make_shared<Camera>(cameraOffset, this);
-
-    app.setRenderCamera(mCamera);
-
-    constexpr bool bWindowXCollide = true;
-    constexpr bool bWindowYCollide = true;
-    setCanCollideWithWindowBorder(bWindowXCollide, bWindowYCollide);
 }
 
 void ChaosJumpPlayer::handleKeyPressed(const SDL_Scancode scancode)
@@ -143,13 +130,18 @@ void ChaosJumpPlayer::setOwningConnection(HSteamNetConnection inOwningConnection
     if (isLocallyOwned())
     {
         Application& app = Application::getApplication();
+
         Vector2 cameraOffset = app.getWindowSize();
         cameraOffset.x *= -0.5f;
         cameraOffset.y *= -0.2f;
-    
+         
         mCamera = std::make_shared<Camera>(cameraOffset, this);
 
         app.setRenderCamera(mCamera);
+    }
+    else
+    {
+        mCamera.reset();
     }
 
     const bool bWindowXCollide = isLocallyOwned();
