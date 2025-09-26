@@ -46,6 +46,10 @@ public:
 
     ChaosJumpGameMode();
     ~ChaosJumpGameMode() override;
+
+    //~ Begin GameMode Interface
+    void handleConnectionJoined(HSteamNetConnection connection) override;
+    //~ End GameMode Interface
     
     virtual void startGame();
     virtual void gameOver();

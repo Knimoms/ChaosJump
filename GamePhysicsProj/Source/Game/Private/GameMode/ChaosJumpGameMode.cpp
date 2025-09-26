@@ -45,6 +45,13 @@ void ChaosJumpGameMode::clearObstaclesOutOfRange()
 ChaosJumpGameMode::ChaosJumpGameMode() = default;
 ChaosJumpGameMode::~ChaosJumpGameMode() = default;
 
+void ChaosJumpGameMode::handleConnectionJoined(HSteamNetConnection connection)
+{
+    GameMode::handleConnectionJoined(connection);
+
+    if (getJoinedConnections().size() >= 1) startGame();
+}
+
 void ChaosJumpGameMode::startGame()
 {
     mPlatforms.clear();

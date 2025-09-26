@@ -286,7 +286,7 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet, HSteamNetConnect
     }
     else
     {
-        if (it != mNetworkObjects.end())
+        if (it == mNetworkObjects.end())
         {
             object = createRemoteObject(packet.header.type, packet.header.netGUID);
             object->setOwningConnection(sendingConnection);
