@@ -126,6 +126,11 @@ void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequest
 
 void NetHandler::replicateObjects() const
 {
+    for (SerializableInterface* serializableObject : mLocallyReplicatedObjects)
+    {
+        NetPacket packet(serializableObject->getTypeID(), serializableObject->serialize());
+        std::string serializedString = serializableObject->serialize();
+    }
 }
 
 SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId) const
@@ -136,14 +141,6 @@ SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId) const
     
     return remoteObject.get();
 }
-
-struct TypeRegister
-{
-    TypeRegister()
-    {
-        NetHandler::registerTypeID(5, [](){ return std::make_unique<Player>(); });
-    }
-};
 
 void NetHandler::host()
 {

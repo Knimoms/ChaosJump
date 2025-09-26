@@ -7,15 +7,15 @@
         Class##TypeRegister(); \
     }; \
     static Class##TypeRegister TypeRegister; \
-    static uint8_t mTypeID;
+    uint8_t getTypeID() const override;
 
 #define DEFINE_TYPE_REGISTER(Class, TypeID, ...) \
-    uint8_t Class##::mTypeID = TypeID; \
     Class::Class##TypeRegister::Class##TypeRegister() \
     { \
         NetHandler::registerTypeID(TypeID, [](){ return std::make_unique<Class>(__VA_ARGS__); }); \
     } \
-    Class::Class##TypeRegister Class::TypeRegister;
+    Class::Class##TypeRegister Class::TypeRegister; \
+    uint8_t Class::getTypeID() const { return TypeID; }
 
 class SerializableInterface
 {
@@ -40,6 +40,5 @@ public:
     virtual std::string serialize() const = 0;
     virtual void deserialize(std::string serialized) = 0;
 
-    virtual bool isNetGUIDValid() const { return mNetGUID; }
-
+    virtual uint8_t getTypeID() const = 0;
 };
