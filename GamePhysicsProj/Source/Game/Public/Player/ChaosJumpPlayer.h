@@ -46,5 +46,6 @@ public:
     // Begin SerializableInterface
     std::string serialize() const override;
     void deserialize(std::string serialized) override;
+    void setOwningConnection(HSteamNetConnection inOwningConnection) override;
     // End SerializableInterface
 };

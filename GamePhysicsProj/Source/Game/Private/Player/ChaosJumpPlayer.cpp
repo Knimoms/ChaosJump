@@ -135,3 +135,24 @@ void ChaosJumpPlayer::deserialize(std::string serialized)
 
     memcpy(&mLocation, serialized.data(), sizeof(Vector2));
 }
+
+void ChaosJumpPlayer::setOwningConnection(HSteamNetConnection inOwningConnection)
+{
+    Player::setOwningConnection(inOwningConnection);
+
+    if (isLocallyOwned())
+    {
+        Application& app = Application::getApplication();
+        Vector2 cameraOffset = app.getWindowSize();
+        cameraOffset.x *= -0.5f;
+        cameraOffset.y *= -0.2f;
+    
+        mCamera = std::make_shared<Camera>(cameraOffset, this);
+
+        app.setRenderCamera(mCamera);
+    }
+
+    constexpr bool bWindowXCollide = isLocallyOwned();
+    constexpr bool bWindowYCollide = isLocallyOwned();
+    setCanCollideWithWindowBorder(bWindowXCollide, bWindowYCollide);
+}
