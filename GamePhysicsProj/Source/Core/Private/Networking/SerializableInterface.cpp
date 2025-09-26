@@ -30,3 +30,8 @@ void SerializableInterface::registerObject()
 {
     Application::getApplication().getNetHandler()->addNetworkObject(this);
 }
+
+void SerializableInterface::callOnDestroy()
+{
+    mOnDestroyDelegate(this);
+}

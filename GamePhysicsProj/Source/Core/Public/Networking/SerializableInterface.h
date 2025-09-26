@@ -51,5 +51,6 @@ public:
     
     HSteamNetConnection getOwningConnection() const { return mOwningConnection; }
     bool isLocallyOwned() const { return !mOwningConnection; }
-    
+
+    void callOnDestroy();
 };
