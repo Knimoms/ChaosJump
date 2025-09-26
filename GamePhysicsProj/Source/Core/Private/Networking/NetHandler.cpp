@@ -61,11 +61,22 @@ void NetHandler::handleNetPacket(const NetPacket& packet, HSteamNetConnection se
     }
 }
 
+static void logPacket(const NetPacket& packet, HSteamNetConnection receivingConnection)
+{
+    fprintf(stderr, "[OUT MESSAGE TO %u] %d, %u, %d, %u, %llu, %s\n",
+        receivingConnection,
+        packet.header.type,
+        packet.header.netGUID,
+        packet.header.objectType,
+        packet.header.size,
+        packet.header.timestamp,
+        packet.body.c_str());
+}
+
 void NetHandler::sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection)
 {
     const std::string msg = packet.toString();
-
-    fprintf(stderr, "[OUT MESSAGE] %s\n", msg.c_str());
+    logPacket(packet, connection);
     SteamNetworkingSockets()->SendMessageToConnection(connection, msg.data(), static_cast<int>(strlen(msg.data())), k_nSteamNetworkingSend_Unreliable, nullptr);
 }
 
