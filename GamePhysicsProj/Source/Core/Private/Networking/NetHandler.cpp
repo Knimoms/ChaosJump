@@ -90,7 +90,8 @@ void NetHandler::sendPacketToConnection(const NetPacket& packet, const HSteamNet
     const std::string msg = packet.toString();
     //logPacket(packet, connection);
     printHex(msg.data(), msg.size(), stderr);
-    SteamNetworkingSockets()->SendMessageToConnection(connection, msg.data(), static_cast<int>(strlen(msg.data())), k_nSteamNetworkingSend_Unreliable, nullptr);
+
+    SteamNetworkingSockets()->SendMessageToConnection(connection, msg.data(), msg.size(), k_nSteamNetworkingSend_Unreliable, nullptr);
 }
 
 bool NetHandler::initializeSteam()
