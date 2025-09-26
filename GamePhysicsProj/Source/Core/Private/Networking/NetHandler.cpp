@@ -127,23 +127,29 @@ void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback
     
     switch (pParam->m_info.m_eState) {
     case k_ESteamNetworkingConnectionState_Connecting:
-        sockets->AcceptConnection(pParam->m_hConn);
-        sockets->SetConnectionPollGroup(pParam->m_hConn, mPollGroup);
-        mClientConnections.push_back(pParam->m_hConn);
+        if (bHosting)
         {
-            NetPacket packet(MESSAGE, "hello whats up");
-            sendPacketToConnection(packet, pParam->m_hConn);
+            sockets->AcceptConnection(pParam->m_hConn);
+            sockets->SetConnectionPollGroup(pParam->m_hConn, mPollGroup);
+            mClientConnections.push_back(pParam->m_hConn);
+            {
+                NetPacket packet(MESSAGE, "hello whats up");
+                sendPacketToConnection(packet, pParam->m_hConn);
+            }
+            Application::getApplication().getGameMode()->handleConnectionJoined(pParam->m_hConn);
+            printf("Client connected!\n");
         }
 
-        Application::getApplication().getGameMode()->handleConnectionJoined(pParam->m_hConn);
-        printf("Client connected!\n");
         break;
     case k_ESteamNetworkingConnectionState_ClosedByPeer:
     case k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
-        sockets->CloseConnection(pParam->m_hConn, 0, nullptr, false);
-        std::erase(mClientConnections, pParam->m_hConn);
-        Application::getApplication().getGameMode()->handleConnectionLeft(pParam->m_hConn);
-        printf("Client disconnected or problem.\n");
+        if (bHosting)
+        {
+            sockets->CloseConnection(pParam->m_hConn, 0, nullptr, false);
+            std::erase(mClientConnections, pParam->m_hConn);
+            Application::getApplication().getGameMode()->handleConnectionLeft(pParam->m_hConn);
+            printf("Client disconnected or problem.\n");
+        }
         break;
     default: break;
     }
