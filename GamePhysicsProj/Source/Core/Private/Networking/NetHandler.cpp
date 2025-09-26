@@ -64,6 +64,8 @@ void NetHandler::handleNetPacket(const NetPacket& packet, HSteamNetConnection se
 void NetHandler::sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection)
 {
     const std::string msg = packet.toString();
+
+    fprintf(stderr, "[OUT MESSAGE] %s\n", msg.c_str());
     SteamNetworkingSockets()->SendMessageToConnection(connection, msg.data(), static_cast<int>(strlen(msg.data())), k_nSteamNetworkingSend_Unreliable, nullptr);
 }
 
