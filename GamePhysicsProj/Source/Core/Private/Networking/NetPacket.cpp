@@ -19,7 +19,7 @@ NetPacket::NetPacket(const uint8_t inType, const SerializableInterface* object, 
 
 NetPacket::NetPacket(const void* data, const int size)
 {
-    if (!ensure(size > sizeof(Header))) return;
+    if (!ensure(size >= sizeof(Header))) return;
     
     memcpy(&header, data, sizeof(Header));
 
