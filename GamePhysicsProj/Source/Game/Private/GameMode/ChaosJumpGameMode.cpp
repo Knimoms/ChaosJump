@@ -81,7 +81,7 @@ void ChaosJumpGameMode::startGame()
         {
             mPlayers[connection] = std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>(new ChaosJumpPlayer(size, mPlayerSpawnLocation));
             mPlayers[connection]->registerObject();
-            mPlayers[connection]->setOwningConnection(connection);
+            mPlayers[connection]->transferOwnershipToConnection(connection);
         }
     }
 
