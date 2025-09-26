@@ -130,10 +130,9 @@ void NetHandler::replicateObjects() const
     if (now - mLastReplicateTimestamp <= mReplicationTickRateMilliseconds*1000) return;
     
     mLastReplicateTimestamp = now;
-    for (SerializableInterface* serializableObject : mLocallyReplicatedObjects)
+    for (const SerializableInterface* serializableObject : mLocallyReplicatedObjects)
     {
         NetPacket packet(serializableObject->getTypeID(), serializableObject->serialize());
-        std::string serializedString = serializableObject->serialize();
     }
 }
 
