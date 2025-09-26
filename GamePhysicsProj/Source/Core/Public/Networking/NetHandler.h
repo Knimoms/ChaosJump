@@ -44,6 +44,8 @@ protected:
     SerializableInterface* createRemoteObject(uint8_t typeId) const;
     void handleObjectNetPacket(const NetPacket& packet) const;
     void handleNetPacket(const NetPacket& packet) const;
+
+    static void sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection);
     
 public:
 

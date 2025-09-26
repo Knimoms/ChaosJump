@@ -59,6 +59,12 @@ void NetHandler::handleNetPacket(const NetPacket& packet) const
     }
 }
 
+void NetHandler::sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection)
+{
+    const std::string msg = packet.toString();
+    SteamNetworkingSockets()->SendMessageToConnection(connection, msg.data(), static_cast<int>(strlen(msg.data())), k_nSteamNetworkingSend_Unreliable, nullptr);
+}
+
 NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
 {
     SteamAPI_Init();
@@ -85,8 +91,8 @@ void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback
         sockets->SetConnectionPollGroup(pParam->m_hConn, mPollGroup);
         mClientConnections.push_back(pParam->m_hConn);
         {
-            const char hello[] = "hello whats up";
-            sockets->SendMessageToConnection(pParam->m_hConn, hello, static_cast<int>(strlen(hello)), k_nSteamNetworkingSend_Reliable, nullptr);
+            NetPacket packet(MESSAGE, "hello whats up");
+            sendPacketToConnection(packet, pParam->m_hConn);
         }
         
         printf("Client connected!\n");
@@ -231,10 +237,7 @@ void NetHandler::runCallbacks()
 
         if (now - mLastHeartbeat > 5000000) {
             NetPacket packet(HEARTBEAT, "");
-
-            const std::string msg = packet.toString();
-            
-            SteamNetworkingSockets()->SendMessageToConnection(mServerConnection, msg.data(), static_cast<int>(strlen(msg.data())), k_nSteamNetworkingSend_Unreliable, nullptr);
+            sendPacketToConnection(packet, mServerConnection);
             mLastHeartbeat = now;
         }
     }
