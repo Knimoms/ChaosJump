@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "Base/HelperDefinitions.h"
-#include "Base/TickableInterface.h"
+#include "Game/GameMode.h"
 #include "Input/InputReceiverInterface.h"
 #include "Math/Vector2.h"
 #include "Objects/Platform.h"
@@ -15,13 +15,14 @@ class Player;
 DECLARE_DEFAULT_DELETER(ChunkGenerator)
 DECLARE_DEFAULT_DELETER(Player)
 
-class GameMode : public TickableInterface, public InputReceiverInterface
+class ChaosJumpGameMode : public GameMode, public TickableInterface, public InputReceiverInterface
 {
 private:
 
-    Vector2 mPlayerSpawnLocation = {.x = 0, .y = 500};
+    Vector2 mPlayerSpawnLocation = {.x = 0, .y = 200};
 
-    std::unique_ptr<Player, PlayerDeleter> mPlayer = nullptr;
+    std::unique_ptr<Player, PlayerDeleter> mLocalPlayer;
+    std::vector<std::unique_ptr<Player, PlayerDeleter>> mPlayers;
     std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter> mChunkGenerator = nullptr;
 
     float mChunkHeight = 0.f;
@@ -40,23 +41,22 @@ protected:
 
     void clearDroppedPlatforms();
     void clearObstaclesOutOfRange();
-    
+
 public:
 
-    GameMode();
-    ~GameMode() override;
-
+    ChaosJumpGameMode();
+    ~ChaosJumpGameMode() override;
+    
     virtual void startGame();
     virtual void gameOver();
 
     static void hostSession();
-    static void connectToSession();
 
     //~Begin TickableInterface
     void tick(float deltaTime) override;
     //~End TickableInterface
 
-    Player* getPlayer() const { return mPlayer.get(); }
+    Player* getPlayer() const { return mLocalPlayer.get(); }
 
     //~Begin InputReceiverInterface
     void handleKeyPressed(SDL_Scancode scancode) override;

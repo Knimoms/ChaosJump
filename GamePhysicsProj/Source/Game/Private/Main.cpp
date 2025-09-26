@@ -1,5 +1,5 @@
 #include "Application.h"
-#include "GameMode/GameMode.h"
+#include "GameMode/ChaosJumpGameMode.h"
 
 constexpr const char* WINDOW_TITLE = "OpenWindow";
 constexpr int WINDOW_WIDTH = 1280;
@@ -14,8 +14,9 @@ int main(int argc, char *argv[])
     applicationParams.framesPerSecond = 0;
     
     Application& application = Application::initApplication(applicationParams);
-    GameMode GameMode;
-    application.getInputRouter()->addInputReceiver(&GameMode);
+    std::unique_ptr gameMode = std::make_unique<ChaosJumpGameMode>();
+    application.getInputRouter()->addInputReceiver(gameMode.get());
+    application.setGameMode(std::move(gameMode));
     application.run();
     
     return 0;

@@ -106,6 +106,11 @@ Application::~Application()
     SDL_Quit();
 }
 
+void Application::setGameMode(std::unique_ptr<GameMode> gameMode)
+{
+    mGameMode = std::move(gameMode);
+}
+
 Application& Application::initApplication(const ApplicationParams& params)
 {
     sApplicationParams = params;

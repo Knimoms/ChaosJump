@@ -4,14 +4,14 @@
 #include <vector>
 
 #include "Base/HelperDefinitions.h"
+#include "Game/GameMode.h"
 #include "Input/InputRouter.h"
 #include "Math/Vector2.h"
 #include "Render/Camera.h"
 #include "Render/DrawableInterface.h"
-#include "SDL3/SDL_stdinc.h"
 
 class NetHandler;
-class GameMode;
+class ChaosJumpGameMode;
 class CollisionShapeInterface;
 class SDL_Window;
 class SDL_Renderer;
@@ -103,6 +103,7 @@ private:
     std::unique_ptr<SDL_Renderer, RendererDeleter> mRenderer = nullptr;
 
     std::unique_ptr<InputRouter> mInputRouter = nullptr;
+    std::unique_ptr<GameMode> mGameMode = nullptr;
     std::unique_ptr<NetHandler, NetHandlerDeleter> mNetHandler = nullptr;
     std::weak_ptr<Camera> mRenderCamera;
     
@@ -132,6 +133,10 @@ protected:
 public:
 
     InputRouter* getInputRouter() const { return mInputRouter.get(); }
+    
+    GameMode* getGameMode() const { return mGameMode.get(); }
+    void setGameMode(std::unique_ptr<GameMode> gameMode);
+    
     NetHandler* getNetHandler() const { return mNetHandler.get(); }
 
     uint64_t getFrameCount() const { return mFrameTracker.getFrameCounter(); }

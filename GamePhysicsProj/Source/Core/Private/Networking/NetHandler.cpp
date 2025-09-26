@@ -3,6 +3,7 @@
 #include <chrono>
 #include <string>
 
+#include "Application.h"
 #include "Debugging/DebugDefinitions.h"
 #include "Networking/NetPacket.h"
 #include "Networking/SerializableInterface.h"
@@ -40,7 +41,7 @@ public:
     }
 };
 
-void NetHandler::handleNetPacket(const NetPacket& packet) const
+void NetHandler::handleNetPacket(const NetPacket& packet, HSteamNetConnection sendingConnection) const
 {
     switch (packet.header.type)
     {
@@ -53,9 +54,10 @@ void NetHandler::handleNetPacket(const NetPacket& packet) const
         fprintf(stderr, "[MESSAGE] %s\n", packet.body.c_str());
         break;
     case REMOTEPROCEDURECALL:
-        break;    
-    default:
-        handleObjectNetPacket(packet);
+        break;
+    case OBJECTDESTROY:
+    case OBJECTUPDATE:
+        handleObjectNetPacket(packet, sendingConnection);
     }
 }
 
@@ -84,7 +86,9 @@ bool NetHandler::initializeSteam()
     return true;
 }
 
-NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
+NetHandler::NetHandler() : mListenSocket(0), mPollGroup(0), mServerConnection(0),
+                           m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested),
+                           m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
 {
 }
 
@@ -103,14 +107,15 @@ void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback
             NetPacket packet(MESSAGE, "hello whats up");
             sendPacketToConnection(packet, pParam->m_hConn);
         }
-        
+
+        Application::getApplication().getGameMode()->handleConnectionJoined(pParam->m_hConn);
         printf("Client connected!\n");
         break;
     case k_ESteamNetworkingConnectionState_ClosedByPeer:
     case k_ESteamNetworkingConnectionState_ProblemDetectedLocally:
         sockets->CloseConnection(pParam->m_hConn, 0, nullptr, false);
         std::erase(mClientConnections, pParam->m_hConn);
-        
+        Application::getApplication().getGameMode()->handleConnectionLeft(pParam->m_hConn);
         printf("Client disconnected or problem.\n");
         break;
     default: break;
@@ -133,24 +138,43 @@ void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequest
     bConnectedAsClient = true;
 }
 
+void NetHandler::replicateObject(const SerializableInterface* object) const
+{
+    if (bConnectedAsClient)
+    {
+        const NetPacket packet(object->getTypeID(), object->serialize());
+        sendPacketToConnection(packet, mServerConnection);
+        return;
+    }
+
+    for (const HSteamNetConnection& connection: mClientConnections)
+    {
+        if (connection == object->getOwningConnection()) continue;
+        
+        const NetPacket packet(object->getTypeID(), object->serialize());
+        sendPacketToConnection(packet, connection);
+    }
+}
+
 void NetHandler::replicateObjects() const
 {
     const uint64_t now = SteamNetworkingUtils()->GetLocalTimestamp();
     if (now - mLastReplicateTimestamp <= mReplicationTickRateMilliseconds*1000) return;
     
     mLastReplicateTimestamp = now;
-    for (const SerializableInterface* serializableObject : mLocallyReplicatedObjects)
+    for (const SerializableInterface* serializableObject : mNetworkObjects)
     {
-        NetPacket packet(serializableObject->getTypeID(), serializableObject->serialize());
+        if (bConnectedAsClient && !serializableObject->getOwningConnection()) continue;
+        NetPacket packet(OBJECTUPDATE, serializableObject, serializableObject->serialize());
+        replicateObject(serializableObject);
     }
 }
 
-SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId) const
+SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId, uint32_t netGUID)
 {
     const std::shared_ptr remoteObject = NetFactory::getInstance().create(typeId);
-    remoteObject->setOwnership(false);
-    mRemoteObjects.push_back(remoteObject);
-    
+    remoteObject->mNetGUID = netGUID;
+    remoteObject->registerObject();
     return remoteObject.get();
 }
 
@@ -164,58 +188,59 @@ void NetHandler::host()
     bHosting = true;
 }
 
-void NetHandler::connect()
-{
-}
-
 void NetHandler::receiveMessages() const
 {
     if (bHosting)
     {
         SteamNetworkingMessage_t* msgs[64];
-        for (;;) {
-            int n = SteamNetworkingSockets()->ReceiveMessagesOnPollGroup(mPollGroup, msgs, 64);
-            if (n == 0) break;          // no more messages right now
-            if (n < 0) { /* error */ break; }
-
-            for (int i = 0; i < n; ++i) {
-                auto* m = msgs[i];
-                HSteamNetConnection from = m->m_conn;
-                const void* data = m->m_pData;
-                int len = m->m_cbSize;
+        for (;;)
+        {
+            const int messagesNum = SteamNetworkingSockets()->ReceiveMessagesOnPollGroup(mPollGroup, msgs, 64);
+            
+            if (messagesNum == 0) break;
+            if (!ensure(messagesNum >= 0)) break;
+            
+            for (int i = 0; i < messagesNum; ++i)
+            {
+                auto* message = msgs[i];
+                const HSteamNetConnection from = message->m_conn;
+                const void* data = message->m_pData;
+                int len = message->m_cbSize;
 
                 NetPacket packet(data, len);
-                handleNetPacket(packet);
-                m->Release();
+                handleNetPacket(packet, from);
+                message->Release();
             }
         }
     }
     else if (bConnectedAsClient)
     {
         SteamNetworkingMessage_t* msgs[32];
-        for (;;) {
+        for (;;)
+        {
             const int messagesNum = SteamNetworkingSockets()->ReceiveMessagesOnConnection(mServerConnection, msgs, 32);
 
             if (messagesNum == 0) break;
-            if (!ensure(messagesNum >= 0)) { break; }
+            if (!ensure(messagesNum >= 0)) break;
 
-            for (int i = 0; i < messagesNum; ++i) {
-                SteamNetworkingMessage_t* m = msgs[i];
-                const void* data = m->m_pData;
-                int len = m->m_cbSize;
+            for (int i = 0; i < messagesNum; ++i)
+            {
+
+                auto* message = msgs[i];
+                const HSteamNetConnection from = message->m_conn;
+                const void* data = message->m_pData;
+                const int len = message->m_cbSize;
                 
                 NetPacket packet(data, len);
-                handleNetPacket(packet);
+                handleNetPacket(packet, from);
                 
-                m->Release();
+                message->Release();
             }
         }
     }
 }
 
-
-
-void NetHandler::handleObjectNetPacket(const NetPacket& packet) const
+void NetHandler::handleObjectNetPacket(const NetPacket& packet, HSteamNetConnection sendingConnection) const
 {
     const auto it = std::ranges::find_if(mNetworkObjects, [&](SerializableInterface* obj)
         {
@@ -224,22 +249,33 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet) const
 
 
     SerializableInterface* object = nullptr;
-            
-    if (it != mNetworkObjects.end())
-    {
-        object = createRemoteObject(packet.header.type);
-    }
 
-    if (object)
+    if (packet.header.type == OBJECTDESTROY)
     {
-        object->deserialize(packet.body);
+        if (it == mNetworkObjects.end())
+        {
+            
+        }
     }
+    else
+    {
+        if (it != mNetworkObjects.end())
+        {
+            object = createRemoteObject(packet.header.type, packet.header.netGUID);
+            object->setOwningConnection(sendingConnection);
+        }
+            
+        if (object)
+        {
+            object->deserialize(packet.body);
+        }
+    }
+            
+
 }
 
 void NetHandler::runCallbacks()
 {
-
-    
     SteamAPI_RunCallbacks();
 
     if (bConnectedAsClient)
@@ -259,17 +295,50 @@ void NetHandler::runCallbacks()
     }
 }
 
-void NetHandler::addReplicatedObject(SerializableInterface* replicatedObject)
+void NetHandler::addNetworkObject(SerializableInterface* object)
 {
-    mLocallyReplicatedObjects.push_back(replicatedObject);
+    if (!object->mNetGUID)
+    {
+        const uint32_t netGUID = object->mNetGUID;
+        object->mNetGUID = netGUID;
+        mUsedNetGUIDs.insert(netGUID);
+    }
+
+    object->mOnDestroyDelegate = [this](const SerializableInterface* serializableObject)
+    {
+        if (bHosting)
+        {
+            NetPacket packet(OBJECTDESTROY, serializableObject, {});
+            for (HSteamNetConnection connection : mClientConnections)
+            {
+                sendPacketToConnection(packet, connection);
+            }
+        }
+        
+        removeNetworkObject(serializableObject);
+    };
+
+    mNetworkObjects.push_back(object);
 }
 
-void NetHandler::removeReplicatedObject(SerializableInterface* replicatedObject)
+void NetHandler::removeNetworkObject(const SerializableInterface* object)
 {
-    std::erase(mLocallyReplicatedObjects, replicatedObject);
+    mUsedNetGUIDs.erase(object->mNetGUID);
+    std::erase(mNetworkObjects, object);
 }
 
 void NetHandler::registerTypeID(uint8_t typeID, std::function<std::unique_ptr<SerializableInterface>()>&& factoryFunction)
 {
     NetFactory::getInstance().registerType(typeID, std::move(factoryFunction));
+}
+
+uint32_t NetHandler::getFreeNetGUID() const
+{
+    for (uint32_t guid = 1; ; ++guid)
+    {
+        if (!mUsedNetGUIDs.contains(guid))
+        {
+            return guid;
+        }
+    }
 }

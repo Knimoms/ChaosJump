@@ -1,5 +1,8 @@
 ﻿#pragma once
+#include <functional>
 #include <string>
+
+#include "SteamSDK/public/steam/steamnetworkingtypes.h"
 
 #define DECLARE_TYPE_REGISTER(Class) \
     struct Class##TypeRegister \
@@ -20,25 +23,30 @@
 class SerializableInterface
 {
 
-private:
+protected:
 
     uint32_t mNetGUID = 0;
 
-    bool bOwnedLocally = false;
+    HSteamNetConnection mOwningConnection;
 
     friend class NetHandler;
 
-protected:
+    using OnDestroyCallback = std::function<void(SerializableInterface*)>;
+    OnDestroyCallback mOnDestroyDelegate;
 
-    void setOwnership(bool inLocallyOwned);
-    
 public:
 
-    SerializableInterface();
     virtual ~SerializableInterface();
+
+    void setOwningConnection(HSteamNetConnection inOwningConnection);
 
     virtual std::string serialize() const = 0;
     virtual void deserialize(std::string serialized) = 0;
 
+    void registerObject();
+    
     virtual uint8_t getTypeID() const = 0;
+    uint32_t getNetGUID() const { return mNetGUID; }
+    
+    HSteamNetConnection getOwningConnection() const { return mOwningConnection; }
 };

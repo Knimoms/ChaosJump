@@ -1,4 +1,4 @@
-﻿#include "GameMode/GameMode.h"
+﻿#include "GameMode/ChaosJumpGameMode.h"
 
 #include <format>
 
@@ -14,39 +14,38 @@
 DEFINE_DEFAULT_DELETER(ChunkGenerator)
 DEFINE_DEFAULT_DELETER(Player)
 
-void GameMode::clearDroppedPlatforms()
+void ChaosJumpGameMode::clearDroppedPlatforms()
 {
     std::vector<int> droppedPlatformIndices = {};
     const size_t platformCount = mPlatforms.size(); 
     for (size_t i = platformCount - 1; i < std::numeric_limits<size_t>::max(); --i)
     {
         auto& platform = mPlatforms[i];
-        if (platform->getLocation().y > mPlayer->getLocation().y + mChunkHeight)
+        if (platform->getLocation().y > mLocalPlayer->getLocation().y + mChunkHeight)
         {
             mPlatforms.erase(mPlatforms.begin() + i);
         }
     }
 }
 
-void GameMode::clearObstaclesOutOfRange()
+void ChaosJumpGameMode::clearObstaclesOutOfRange()
 {
     std::vector<int> outOfRangeObstaclesIndices = {};
     const size_t obstacleCount = mObstacles.size(); 
     for (size_t i = obstacleCount - 1; i < std::numeric_limits<size_t>::max(); --i)
     {
         auto& obstacle = mObstacles[i];
-        if (obstacle->getLocation().y > mPlayer->getLocation().y + 3 * mChunkHeight)
+        if (obstacle->getLocation().y > mLocalPlayer->getLocation().y + 3 * mChunkHeight)
         {
             mObstacles.erase(mObstacles.begin() + i);
         }
     }
 }
 
-GameMode::GameMode() = default;
+ChaosJumpGameMode::ChaosJumpGameMode() = default;
+ChaosJumpGameMode::~ChaosJumpGameMode() = default;
 
-GameMode::~GameMode() = default;
-
-void GameMode::startGame()
+void ChaosJumpGameMode::startGame()
 {
     mPlatforms.clear();
     mObstacles.clear();
@@ -57,7 +56,8 @@ void GameMode::startGame()
     
     constexpr Vector2 size {.x = 1, .y = 1};
 
-    mPlayer = std::unique_ptr<Player, PlayerDeleter>(new Player(size, mPlayerSpawnLocation));
+    mLocalPlayer = std::unique_ptr<Player, PlayerDeleter>(new Player(size, mPlayerSpawnLocation));
+    mLocalPlayer->registerObject();
 
     std::unique_ptr<Platform> platform = std::make_unique<Platform>();
     platform->setLocation(mPlayerSpawnLocation + Vector2{.x = 0, .y = 300});
@@ -73,7 +73,7 @@ void GameMode::startGame()
     app.getInputRouter()->addInputReceiver(getPlayer());
 }
 
-void GameMode::gameOver()
+void ChaosJumpGameMode::gameOver()
 {
     bGameOver = true;
     bStarted = false;
@@ -82,17 +82,12 @@ void GameMode::gameOver()
     app.getInputRouter()->removeInputReceiver(getPlayer());    
 }
 
-void GameMode::hostSession()
+void ChaosJumpGameMode::hostSession()
 {
     Application::getApplication().getNetHandler()->host();
 }
 
-void GameMode::connectToSession()
-{
-    Application::getApplication().getNetHandler()->connect();
-}
-
-void GameMode::tick(const float deltaTime)
+void ChaosJumpGameMode::tick(const float deltaTime)
 {
     mGameTime += deltaTime;
 
@@ -113,7 +108,7 @@ void GameMode::tick(const float deltaTime)
         const DisplayText infoDisplayText
         {
             .screenPosition = {.x = 0, .y = 0.1},
-            .text = "Press any button to start the game.",
+            .text = "Press H to host Game or join a friend via the Steam Overlay.",
             .color = gameSeconds % 2 ? Color{1, 1, 1} : Color{0, 1, 0},
             .textScale = {.x = 1.5, .y = 1.5}
         };
@@ -136,9 +131,9 @@ void GameMode::tick(const float deltaTime)
 
     app.addDisplayText(obstacleAliveCount);
     
-    if (!mPlayer) return;
+    if (!mLocalPlayer) return;
 
-    if (mPlayer->isDead())
+    if (mLocalPlayer->isDead())
     {
         gameOver();
         return;
@@ -147,7 +142,7 @@ void GameMode::tick(const float deltaTime)
     clearDroppedPlatforms();
     clearObstaclesOutOfRange();
 
-    const float currentPlayerHeight = -(mPlayer->getLocation().y - mPlayerSpawnLocation.y);
+    const float currentPlayerHeight = -(mLocalPlayer->getLocation().y - mPlayerSpawnLocation.y);
     mReachedHeight = std::max(mReachedHeight, currentPlayerHeight/100);
 
     const DisplayText heightText
@@ -169,22 +164,13 @@ void GameMode::tick(const float deltaTime)
     }
 }
 
-void GameMode::handleKeyPressed(const SDL_Scancode scancode)
+void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
 {
     switch (scancode)
     {
-    case SDL_SCANCODE_C:
-        connectToSession();
-        return;
     case SDL_SCANCODE_H:
         hostSession();
-        return;
     default:
         ;
-    }
-    
-    if (!bStarted)
-    {
-        startGame();
     }
 }

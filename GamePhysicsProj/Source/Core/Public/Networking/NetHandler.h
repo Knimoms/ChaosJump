@@ -1,7 +1,9 @@
 ﻿#pragma once
 
 #include <functional>
+#include <map>
 #include <memory>
+#include <unordered_set>
 #include <vector>
 
 #include "NetPacket.h"
@@ -16,11 +18,9 @@ private:
 
     bool bSteamInitialized = false;
 
-    mutable std::vector<std::shared_ptr<SerializableInterface>> mRemoteObjects;
-    std::vector<SerializableInterface*> mNetworkObjects;
-    std::vector<SerializableInterface*> mLocallyReplicatedObjects;
+    std::unordered_set<uint32_t> mUsedNetGUIDs;
 
-    friend class SerializableInterface;  
+    std::vector<SerializableInterface*> mNetworkObjects;
 
     const int mVirtualPort = 1;
     
@@ -43,13 +43,13 @@ protected:
     STEAM_CALLBACK(NetHandler, handleGameLobbyJoinRequested, GameLobbyJoinRequested_t, m_GameLobbyJoinRequested);
     STEAM_CALLBACK(NetHandler, handleGameRichPresenceJoinRequested, GameRichPresenceJoinRequested_t, m_GameRichPresenceJoinRequested);
 
-
+    void replicateObject(const SerializableInterface* object) const;
     void replicateObjects() const;
 
-    SerializableInterface* createRemoteObject(uint8_t typeId) const;
-    void handleObjectNetPacket(const NetPacket& packet) const;
-    void handleNetPacket(const NetPacket& packet) const;
-
+    static SerializableInterface* createRemoteObject(uint8_t typeId, uint32_t uint32_t);
+    void handleObjectNetPacket(const NetPacket& packet, HSteamNetConnection sendingConnection) const;
+    void handleNetPacket(const NetPacket& packet, HSteamNetConnection sendingConnection) const;
+    
     static void sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection);
 
 public:
@@ -59,14 +59,15 @@ public:
     bool initializeSteam();
     
     void host();
-    void connect();
 
     void receiveMessages() const;
-
     void runCallbacks();
-    
-    void addReplicatedObject(SerializableInterface* replicatedObject);    
-    void removeReplicatedObject(SerializableInterface* replicatedObject);
 
+    void addNetworkObject(SerializableInterface* object);
+    
+    void removeNetworkObject(const SerializableInterface* object);
+    
     static void registerTypeID(uint8_t typeID, std::function<std::unique_ptr<SerializableInterface>()>&& factoryFunction);
+
+    uint32_t getFreeNetGUID() const;
 };

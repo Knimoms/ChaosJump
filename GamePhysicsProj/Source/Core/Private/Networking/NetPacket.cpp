@@ -1,6 +1,7 @@
 #include "Networking/NetPacket.h"
 
 #include "Debugging/DebugDefinitions.h"
+#include "Networking/SerializableInterface.h"
 #include "SteamSDK/public/steam/isteamnetworkingutils.h"
 
 NetPacket::NetPacket(uint8_t inType, const std::string& inBody) : body(inBody)
@@ -8,6 +9,12 @@ NetPacket::NetPacket(uint8_t inType, const std::string& inBody) : body(inBody)
     header.type = inType;
     header.size = body.size();
     header.timestamp = SteamNetworkingUtils()->GetLocalTimestamp();
+}
+
+NetPacket::NetPacket(const uint8_t inType, const SerializableInterface* object, const std::string& inBody) : NetPacket(inType, inBody)
+{
+    header.netGUID = object->getNetGUID();
+    header.objectType = object->getTypeID();
 }
 
 NetPacket::NetPacket(const void* data, const int size)
