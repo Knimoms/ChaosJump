@@ -49,4 +49,6 @@ public:
     uint32_t getNetGUID() const { return mNetGUID; }
     
     HSteamNetConnection getOwningConnection() const { return mOwningConnection; }
+    bool isLocallyOwned() const { return !mOwningConnection; }
+    
 };

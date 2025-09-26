@@ -198,7 +198,7 @@ void NetHandler::replicateObjects() const
     mLastReplicateTimestamp = now;
     for (const SerializableInterface* serializableObject : mNetworkObjects)
     {
-        if (bConnectedAsClient && !serializableObject->getOwningConnection()) continue;
+        if (bConnectedAsClient && !serializableObject->isLocallyOwned()) continue;
         NetPacket packet(OBJECTUPDATE, serializableObject, serializableObject->serialize());
         replicateObject(serializableObject);
     }
@@ -305,13 +305,11 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet, HSteamNetConnect
             object = *it;
         }
             
-        if (object)
+        if (object && ensure(object->getOwningConnection()))
         {
             object->deserialize(packet.body);
         }
     }
-            
-
 }
 
 void NetHandler::runCallbacks()
