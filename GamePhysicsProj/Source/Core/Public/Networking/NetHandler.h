@@ -32,6 +32,9 @@ private:
     HSteamNetConnection mServerConnection;
     uint64_t mLastHeartbeat = 0;
 
+    const uint64_t mReplicationTickRateMilliseconds = 4;
+    mutable uint64_t mLastReplicateTimestamp = 0;
+
 protected:
 
     STEAM_CALLBACK_MANUAL(NetHandler, handleConnStatusChanged, SteamNetConnectionStatusChangedCallback_t, mCallbackConnStatusChanged);

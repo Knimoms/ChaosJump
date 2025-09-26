@@ -126,6 +126,10 @@ void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequest
 
 void NetHandler::replicateObjects() const
 {
+    const uint64_t now = SteamNetworkingUtils()->GetLocalTimestamp();
+    if (now - mLastReplicateTimestamp <= mReplicationTickRateMilliseconds*1000) return;
+    
+    mLastReplicateTimestamp = now;
     for (SerializableInterface* serializableObject : mLocallyReplicatedObjects)
     {
         NetPacket packet(serializableObject->getTypeID(), serializableObject->serialize());
@@ -230,7 +234,7 @@ void NetHandler::runCallbacks()
 
     if (bConnectedAsClient)
     {
-        uint64_t now = SteamNetworkingUtils()->GetLocalTimestamp();
+        const uint64_t now = SteamNetworkingUtils()->GetLocalTimestamp();
 
         if (now - mLastHeartbeat > 5000000) {
             NetPacket packet(HEARTBEAT, "");
