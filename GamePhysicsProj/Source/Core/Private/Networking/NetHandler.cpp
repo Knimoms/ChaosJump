@@ -61,6 +61,18 @@ void NetHandler::handleNetPacket(const NetPacket& packet, HSteamNetConnection se
     }
 }
 
+void printHex(const void* data, size_t size, FILE* out = stdout) {
+    auto* bytes = static_cast<const unsigned char*>(data);
+
+    for (size_t i = 0; i < size; ++i) {
+        if (i % 16 == 0)
+            fprintf(out, "%04zx: ", i);   // print offset
+        fprintf(out, "%02x ", bytes[i]);  // print byte as 2-digit hex
+        if (i % 16 == 15 || i == size - 1)
+            fprintf(out, "\n");
+    }
+}
+
 static void logPacket(const NetPacket& packet, HSteamNetConnection receivingConnection)
 {
     fprintf(stderr, "[OUT MESSAGE TO %u] %d, %u, %d, %u, %llu, %s\n",
@@ -76,7 +88,8 @@ static void logPacket(const NetPacket& packet, HSteamNetConnection receivingConn
 void NetHandler::sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection)
 {
     const std::string msg = packet.toString();
-    logPacket(packet, connection);
+    //logPacket(packet, connection);
+    printHex(msg.data(), msg.size(), stderr);
     SteamNetworkingSockets()->SendMessageToConnection(connection, msg.data(), static_cast<int>(strlen(msg.data())), k_nSteamNetworkingSend_Unreliable, nullptr);
 }
 
