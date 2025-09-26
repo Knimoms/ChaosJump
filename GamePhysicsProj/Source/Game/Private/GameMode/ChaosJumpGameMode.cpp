@@ -197,13 +197,14 @@ std::string ChaosJumpGameMode::serialize() const
     std::string serialized;
     serialized.resize(sizeof(bWantsToStartGame) + sizeof(bGameInProgress) + sizeof(mSeed));
 
-    void* destinationAddress = serialized.data();
+    uint8_t* destinationAddress = reinterpret_cast<uint8_t*>(serialized.data());
+
     memcpy(destinationAddress, &bWantsToStartGame, sizeof(bWantsToStartGame));
 
-    destinationAddress += sizeof(bWantsToStartGame);
+    destinationAddress = destinationAddress + sizeof(bWantsToStartGame);
     memcpy(destinationAddress, &bGameInProgress, sizeof(bGameInProgress));
 
-    destinationAddress += sizeof(bGameInProgress);
+    destinationAddress = destinationAddress + sizeof(bQueueGameOver);
     memcpy(destinationAddress, &mSeed, sizeof(mSeed));
 
     return serialized;
@@ -213,7 +214,7 @@ void ChaosJumpGameMode::deserialize(std::string serialized)
 {
     if (!ensure(serialized.size() >= sizeof(bool) * 2 + sizeof(uint32_t))) return;
 
-    void* sourceAddress = serialized.data();
+    uint8_t* sourceAddress = reinterpret_cast<uint8_t*>(serialized.data());
     memcpy(&bWantsToStartGame, sourceAddress, sizeof(bool));
     sourceAddress += sizeof(bool);
     memcpy(&bQueueGameOver, sourceAddress, sizeof(bool));

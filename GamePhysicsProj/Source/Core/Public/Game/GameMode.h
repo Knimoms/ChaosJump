@@ -23,5 +23,5 @@ public:
 
     virtual void handleConnectionJoined(HSteamNetConnection connection);
     virtual void handleConnectionLeft(HSteamNetConnection connection);
-
+    
 };

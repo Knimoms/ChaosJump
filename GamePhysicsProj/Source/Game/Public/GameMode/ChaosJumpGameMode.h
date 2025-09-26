@@ -77,6 +77,7 @@ public:
     //~ Begin SerializableInterface
     std::string serialize() const override;
     void deserialize(std::string serialized) override;
+    uint8_t getTypeID() const override { return 200; }
     //~ End SerializableInterface
     
 };
