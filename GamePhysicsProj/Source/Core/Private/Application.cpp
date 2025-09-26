@@ -68,7 +68,7 @@ void RendererDeleter::operator()(SDL_Renderer* rawRenderer) const
 
 DEFINE_DEFAULT_DELETER(NetHandler)
 
-Application::Application(const ApplicationParams& params) : mInputRouter(std::make_unique<InputRouter>()), mNetHandler(std::unique_ptr<NetHandler, NetHandlerDeleter>(new NetHandler()))
+Application::Application(const ApplicationParams& params) : mInputRouter(std::make_unique<InputRouter>())
 {
     const auto [title, width, height, renderDriver, fps, bInDrawFPS] = params;
 
@@ -123,12 +123,42 @@ void Application::run()
 {
     bRunning = true;
     uint64_t now = SDL_GetPerformanceCounter();
+
+    mNetHandler = std::unique_ptr<NetHandler, NetHandlerDeleter>(new NetHandler());
+
+    while (!mNetHandler->initializeSteam())
+    {
+        if (!bRunning) return;
+        
+        const DisplayText initializeText
+        {
+            .screenPosition = {.x = 0, .y = -0.25},
+            .text = "Couldn't initialize SteamAPI.",
+            .color = {.r = 1, .g = 0, .b = 0},
+            .textScale = {.x = 4, .y = 4}
+        };
+
+        const DisplayText openSteamText
+        {
+            .screenPosition = {.x = 0, .y = 0.1},
+            .text = "Open Steam and login. Now.",
+            .color = {.r = 1, .g = 0, .b = 0},
+            .textScale = {.x = 3, .y = 3}
+        };
+
+
+        addDisplayText(initializeText);
+        addDisplayText(openSteamText);
+        
+        pollEvents();
+        drawFrame(0.f);
+    }
     
     while (bRunning)
     {
         mNetHandler->receiveMessages();
-        
-        uint64_t last = now;
+
+        const uint64_t last = now;
         now = SDL_GetPerformanceCounter();
         const float deltaTime = static_cast<float>(now - last) / SDL_GetPerformanceFrequency();
 

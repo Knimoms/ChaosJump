@@ -65,9 +65,12 @@ void NetHandler::sendPacketToConnection(const NetPacket& packet, const HSteamNet
     SteamNetworkingSockets()->SendMessageToConnection(connection, msg.data(), static_cast<int>(strlen(msg.data())), k_nSteamNetworkingSend_Unreliable, nullptr);
 }
 
-NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
+bool NetHandler::initializeSteam()
 {
-    SteamAPI_Init();
+    if (bSteamInitialized) return true;
+    if (!SteamAPI_Init()) return false;
+
+    bSteamInitialized = true;
     SteamNetworkingUtils()->InitRelayNetworkAccess();
 
     mCallbackConnStatusChanged.Register(this, &NetHandler::handleConnStatusChanged);
@@ -77,6 +80,12 @@ NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGam
        {
            fprintf(stderr, "[SNS] %s\n", msg);
        });
+    
+    return true;
+}
+
+NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
+{
 }
 
 void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
@@ -229,6 +238,8 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet) const
 
 void NetHandler::runCallbacks()
 {
+
+    
     SteamAPI_RunCallbacks();
 
     if (bConnectedAsClient)

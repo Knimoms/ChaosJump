@@ -14,6 +14,8 @@ class NetHandler
 
 private:
 
+    bool bSteamInitialized = false;
+
     mutable std::vector<std::shared_ptr<SerializableInterface>> mRemoteObjects;
     std::vector<SerializableInterface*> mNetworkObjects;
     std::vector<SerializableInterface*> mLocallyReplicatedObjects;
@@ -49,11 +51,13 @@ protected:
     void handleNetPacket(const NetPacket& packet) const;
 
     static void sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection);
-    
+
 public:
 
     NetHandler();
 
+    bool initializeSteam();
+    
     void host();
     void connect();
 
