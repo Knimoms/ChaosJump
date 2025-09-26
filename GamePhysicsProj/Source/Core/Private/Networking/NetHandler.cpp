@@ -212,10 +212,13 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet) const
             
     if (it != mNetworkObjects.end())
     {
-        
+        object = createRemoteObject(packet.header.type);
     }
 
-    object->deserialize(packet.body);
+    if (object)
+    {
+        object->deserialize(packet.body);
+    }
 }
 
 void NetHandler::runCallbacks()
