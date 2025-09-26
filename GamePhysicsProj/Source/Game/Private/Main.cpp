@@ -16,6 +16,8 @@ int main(int argc, char *argv[])
     Application& application = Application::initApplication(applicationParams);
     std::unique_ptr gameMode = std::make_unique<ChaosJumpGameMode>();
     application.getInputRouter()->addInputReceiver(gameMode.get());
+    gameMode->registerObject();
+    
     application.setGameMode(std::move(gameMode));
     application.run();
     

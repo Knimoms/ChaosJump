@@ -4,6 +4,7 @@
 
 #include "Application.h"
 #include "Base/HelperDefinitions.h"
+#include "Debugging/DebugDefinitions.h"
 #include "GameMode/ChunkGenerator.h"
 #include "Input/InputRouter.h"
 #include "Networking/NetHandler.h"
@@ -49,7 +50,11 @@ void ChaosJumpGameMode::handleConnectionJoined(HSteamNetConnection connection)
 {
     GameMode::handleConnectionJoined(connection);
 
-    if (getJoinedConnections().size() >= 1) startGame();
+    if (!getJoinedConnections().empty())
+    {
+        bWantsToStartGame = true;
+        mSeed = std::random_device()();
+    }
 }
 
 void ChaosJumpGameMode::startGame()
@@ -57,7 +62,7 @@ void ChaosJumpGameMode::startGame()
     mPlatforms.clear();
     mObstacles.clear();
     
-    bStarted = true;
+    bGameInProgress = true;
     bGameOver = false;
     mReachedHeight = 0.f;
     
@@ -72,7 +77,7 @@ void ChaosJumpGameMode::startGame()
 
     Application& app = Application::getApplication();
     const Vector2& windowSize = app.getWindowSize();
-    mChunkGenerator = std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter>(new ChunkGenerator(windowSize, 8));
+    mChunkGenerator = std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter>(new ChunkGenerator(windowSize, 8, mSeed));
 
     mChunkGenerator->generateChunk(0, mPlatforms, mObstacles);
     
@@ -83,7 +88,7 @@ void ChaosJumpGameMode::startGame()
 void ChaosJumpGameMode::gameOver()
 {
     bGameOver = true;
-    bStarted = false;
+    bGameInProgress = false;
 
     Application& app = Application::getApplication();
     app.getInputRouter()->removeInputReceiver(getPlayer());    
@@ -96,11 +101,16 @@ void ChaosJumpGameMode::hostSession()
 
 void ChaosJumpGameMode::tick(const float deltaTime)
 {
+    if (bWantsToStartGame && !bGameInProgress)
+    {
+        startGame();
+    }
+    
     mGameTime += deltaTime;
 
     Application& app = Application::getApplication();
 
-    if (!bStarted)
+    if (!bGameInProgress)
     {
         const uint64_t gameSeconds = mGameTime;
 
@@ -180,4 +190,33 @@ void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
     default:
         ;
     }
+}
+
+std::string ChaosJumpGameMode::serialize() const
+{
+    std::string serialized;
+    serialized.resize(sizeof(bWantsToStartGame) + sizeof(bGameInProgress) + sizeof(mSeed));
+
+    void* destinationAddress = serialized.data();
+    memcpy(destinationAddress, &bWantsToStartGame, sizeof(bWantsToStartGame));
+
+    destinationAddress += sizeof(bWantsToStartGame);
+    memcpy(destinationAddress, &bGameInProgress, sizeof(bGameInProgress));
+
+    destinationAddress += sizeof(bGameInProgress);
+    memcpy(destinationAddress, &mSeed, sizeof(mSeed));
+
+    return serialized;
+}
+
+void ChaosJumpGameMode::deserialize(std::string serialized)
+{
+    if (!ensure(serialized.size() >= sizeof(bool) * 2 + sizeof(uint32_t))) return;
+
+    void* sourceAddress = serialized.data();
+    memcpy(&bWantsToStartGame, sourceAddress, sizeof(bool));
+    sourceAddress += sizeof(bool);
+    memcpy(&bQueueGameOver, sourceAddress, sizeof(bool));
+    sourceAddress += sizeof(bool);
+    memcpy(&mSeed, sourceAddress, sizeof(uint32_t));
 }

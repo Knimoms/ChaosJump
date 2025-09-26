@@ -35,7 +35,7 @@ protected:
     
 public:
 
-    ChunkGenerator(const Vector2& inChunkSize, uint32_t inPlatformPerChunkCount);
+    ChunkGenerator(const Vector2& inChunkSize, uint32_t inPlatformPerChunkCount, uint32_t inSeed);
 
     void generateChunk(int chunkHeight, std::vector<std::unique_ptr<Platform>>& outPlatforms, std::vector<std::unique_ptr<CollisionObject>>& outObstacles);
     int getChunkGenerationHeight() const { return mChunkGenerationHeight; }

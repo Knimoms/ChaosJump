@@ -168,6 +168,7 @@ void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequest
     id.SetSteamID(host);
 
     mServerConnection = SteamNetworkingSockets()->ConnectP2P(id, mVirtualPort, 0, nullptr);
+    Application::getApplication().getGameMode()->setOwningConnection(mServerConnection);
     bConnectedAsClient = true;
 }
 

@@ -2,6 +2,7 @@
 
 GameMode::GameMode()
 {
+    mNetGUID = 200;
 }
 
 void GameMode::handleConnectionJoined(HSteamNetConnection connection)

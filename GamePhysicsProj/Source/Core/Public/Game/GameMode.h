@@ -1,15 +1,20 @@
 #pragma once
 #include <vector>
 
+#include "Networking/SerializableInterface.h"
 #include "SteamSDK/public/steam/steamnetworkingtypes.h"
 
-class GameMode
+class GameMode : public SerializableInterface
 {
 
 private:
 
     std::vector<HSteamNetConnection> mJoinedConnections;
-        
+
+protected:
+
+    bool bGameInProgress = false;
+
 public:
 
     GameMode();
@@ -18,5 +23,5 @@ public:
 
     virtual void handleConnectionJoined(HSteamNetConnection connection);
     virtual void handleConnectionLeft(HSteamNetConnection connection);
-    
+
 };

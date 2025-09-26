@@ -145,7 +145,7 @@ void ChunkGenerator::spawnRandomObstacle(int chunkHeight, std::vector<std::uniqu
     }
 }
 
-ChunkGenerator::ChunkGenerator(const Vector2& inChunkSize, const uint32_t inPlatformPerChunkCount) : mChunkSize(inChunkSize), mPlatformPerChunkCount(inPlatformPerChunkCount), mRandomNumberGenerator(std::random_device()())
+ChunkGenerator::ChunkGenerator(const Vector2& inChunkSize, const uint32_t inPlatformPerChunkCount, uint32_t inSeed) : mChunkSize(inChunkSize), mPlatformPerChunkCount(inPlatformPerChunkCount), mRandomNumberGenerator(inSeed)
 {
     const int halfChunkWidth = static_cast<int>(inChunkSize.x) / 2;
     const int halfChunkHeight = static_cast<int>(inChunkSize.y) / 2;

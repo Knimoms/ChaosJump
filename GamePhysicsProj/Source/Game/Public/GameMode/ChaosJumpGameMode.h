@@ -30,12 +30,20 @@ private:
     std::vector<std::unique_ptr<Platform>> mPlatforms = {};
     std::vector<std::unique_ptr<CollisionObject>> mObstacles = {};
 
-    bool bStarted = false;
     bool bGameOver = false;
 
     float mGameTime = 0.f;
 
     float mReachedHeight = 0.f;
+
+    struct //Replicated Properties
+    {
+        bool bWantsToStartGame = false;
+        bool bQueueGameOver = false;
+    
+        uint32_t mSeed = 0;
+    };
+
 
 protected:
 
@@ -56,14 +64,19 @@ public:
 
     static void hostSession();
 
-    //~Begin TickableInterface
+    //~ Begin TickableInterface
     void tick(float deltaTime) override;
-    //~End TickableInterface
+    //~ End TickableInterface
 
     Player* getPlayer() const { return mLocalPlayer.get(); }
 
-    //~Begin InputReceiverInterface
+    //~ Begin InputReceiverInterface
     void handleKeyPressed(SDL_Scancode scancode) override;
-    //~End InputReceiverInterface
+    //~ End InputReceiverInterface
+
+    //~ Begin SerializableInterface
+    std::string serialize() const override;
+    void deserialize(std::string serialized) override;
+    //~ End SerializableInterface
     
 };

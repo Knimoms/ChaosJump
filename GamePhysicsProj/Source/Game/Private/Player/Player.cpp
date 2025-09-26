@@ -122,18 +122,16 @@ void Player::tick(const float deltaTime)
 std::string Player::serialize() const
 {
     std::string serialized;
-    serialized.resize(sizeof(mLocation) + sizeof(mVelocity));
+    serialized.resize(sizeof(mLocation));
 
     memcpy(serialized.data(), &mLocation, sizeof(mLocation));
-    memcpy(serialized.data() + sizeof(mLocation), &mVelocity, sizeof(mVelocity));
 
     return serialized;
 }
 
 void Player::deserialize(std::string serialized)
 {
-    if (!ensure(serialized.size() >= sizeof(Vector2) * 2)) return;
+    if (!ensure(serialized.size() >= sizeof(Vector2))) return;
 
     memcpy(&mLocation, serialized.data(), sizeof(Vector2));
-    memcpy(&mVelocity, serialized.data() + sizeof(Vector2), sizeof(Vector2));
 }
