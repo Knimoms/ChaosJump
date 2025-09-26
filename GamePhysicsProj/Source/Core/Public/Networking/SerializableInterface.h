@@ -38,7 +38,7 @@ public:
 
     virtual ~SerializableInterface();
 
-    void setOwningConnection(HSteamNetConnection inOwningConnection);
+    virtual void setOwningConnection(HSteamNetConnection inOwningConnection);
 
     virtual std::string serialize() const = 0;
     virtual void deserialize(std::string serialized) = 0;

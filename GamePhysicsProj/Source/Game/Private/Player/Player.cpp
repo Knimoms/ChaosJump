@@ -104,6 +104,7 @@ void Player::handleKeyReleased(const SDL_Scancode scancode)
 
 void Player::tick(const float deltaTime)
 {
+    if (getOwningConnection()) return;
     if (bDead) return;
     
     const float deltaMovementX = mInputMovement.x * mSpeed;
