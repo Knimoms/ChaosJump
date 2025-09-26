@@ -31,7 +31,7 @@ struct NetPacket
 
     NetPacket(uint8_t inType, const std::string& inBody);
     NetPacket(const SerializableInterface* object);
-    NetPacket(uint8_t inType, const SerializableInterface* object, const std::string& inBody));
+    NetPacket(uint8_t inType, const SerializableInterface* object, const std::string& inBody);
     NetPacket(const void* data, int size);
     std::string toString() const;
 };
