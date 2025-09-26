@@ -18,7 +18,7 @@ NetPacket::NetPacket(const SerializableInterface* object) : NetPacket(OBJECTUPDA
 NetPacket::NetPacket(uint8_t inType, const SerializableInterface* object, const std::string& inBody) : NetPacket(inType, inBody)
 {
     header.netGUID = object->getNetGUID();
-    header.objectType = object->getTypeID();
+    header.objectType = inType == OBJECTDESTROY ? 0 : object->getTypeID();
 }
 
 NetPacket::NetPacket(const void* data, const int size)
