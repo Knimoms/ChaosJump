@@ -95,7 +95,10 @@ Application::Application(const ApplicationParams& params) : mInputRouter(std::ma
     if (!mRenderer)
     {
         PRINT_SDL_ERROR("Error creating Renderer")
-    }    
+    }
+
+    
+    mNetHandler = std::unique_ptr<NetHandler, NetHandlerDeleter>(new NetHandler());
 }
 
 Application::~Application()
@@ -128,8 +131,6 @@ void Application::run()
 {
     bRunning = true;
     uint64_t now = SDL_GetPerformanceCounter();
-
-    mNetHandler = std::unique_ptr<NetHandler, NetHandlerDeleter>(new NetHandler());
 
     while (!mNetHandler->initializeSteam())
     {
