@@ -1,15 +1,13 @@
 ﻿#pragma once
 
 #include <functional>
-#include <map>
 #include <memory>
 #include <unordered_set>
 #include <vector>
 
 #include "NetPacket.h"
+#include "Networking/SerializableInterface.h"
 #include "SteamSDK/public/steam/steam_api.h"
-
-class SerializableInterface;
 
 class NetHandler
 {
@@ -20,6 +18,7 @@ private:
 
     std::unordered_set<uint32_t> mUsedNetGUIDs;
 
+    mutable std::vector<std::unique_ptr<SerializableInterface>> mRemoteObjects;
     std::vector<SerializableInterface*> mNetworkObjects;
 
     const int mVirtualPort = 1;
@@ -46,7 +45,7 @@ protected:
     void replicateObject(const SerializableInterface* object) const;
     void replicateObjects() const;
 
-    static SerializableInterface* createRemoteObject(uint8_t typeId, uint32_t uint32_t);
+    SerializableInterface* createRemoteObject(uint8_t typeId, uint32_t uint32_t) const;
     void handleObjectNetPacket(const NetPacket& packet, HSteamNetConnection sendingConnection) const;
     void handleNetPacket(const NetPacket& packet, HSteamNetConnection sendingConnection) const;
     

@@ -203,11 +203,12 @@ void NetHandler::replicateObjects() const
     }
 }
 
-SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId, uint32_t netGUID)
+SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId, uint32_t netGUID) const
 {
-    const std::shared_ptr remoteObject = NetFactory::getInstance().create(typeId);
+    std::unique_ptr remoteObject = NetFactory::getInstance().create(typeId);
     remoteObject->mNetGUID = netGUID;
     remoteObject->registerObject();
+    mRemoteObjects.push_back(std::move(remoteObject));
     return remoteObject.get();
 }
 
