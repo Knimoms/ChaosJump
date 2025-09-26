@@ -38,11 +38,12 @@ public:
 
     virtual ~SerializableInterface();
 
+    void transferOwnershipToConnection(HSteamNetConnection newOwningConnection);
     virtual void setOwningConnection(HSteamNetConnection inOwningConnection);
 
     virtual std::string serialize() const = 0;
     virtual void deserialize(std::string serialized) = 0;
-
+    
     void registerObject();
     
     virtual uint8_t getTypeID() const = 0;

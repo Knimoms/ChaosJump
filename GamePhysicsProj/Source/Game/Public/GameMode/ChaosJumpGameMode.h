@@ -10,10 +10,10 @@
 #include "SDL3/SDL_scancode.h"
 
 class ChunkGenerator;
-class Player;
+class ChaosJumpPlayer;
 
 DECLARE_DEFAULT_DELETER(ChunkGenerator)
-DECLARE_DEFAULT_DELETER(Player)
+DECLARE_DEFAULT_DELETER(ChaosJumpPlayer)
 
 class ChaosJumpGameMode : public GameMode, public TickableInterface, public InputReceiverInterface
 {
@@ -21,8 +21,9 @@ private:
 
     Vector2 mPlayerSpawnLocation = {.x = 0, .y = 200};
 
-    std::unique_ptr<Player, PlayerDeleter> mLocalPlayer;
-    std::vector<std::unique_ptr<Player, PlayerDeleter>> mPlayers;
+    ChaosJumpPlayer* mLocalChaosJumpPlayer = nullptr;
+
+    std::map<HSteamNetConnection, std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>> mPlayers;
     std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter> mChunkGenerator = nullptr;
 
     float mChunkHeight = 0.f;
@@ -57,6 +58,7 @@ public:
 
     //~ Begin GameMode Interface
     void handleConnectionJoined(HSteamNetConnection connection) override;
+    void setLocalPlayer(Player* inLocalPlayer) override;
     //~ End GameMode Interface
     
     virtual void startGame();
@@ -67,8 +69,6 @@ public:
     //~ Begin TickableInterface
     void tick(float deltaTime) override;
     //~ End TickableInterface
-
-    Player* getPlayer() const { return mLocalPlayer.get(); }
 
     //~ Begin InputReceiverInterface
     void handleKeyPressed(SDL_Scancode scancode) override;

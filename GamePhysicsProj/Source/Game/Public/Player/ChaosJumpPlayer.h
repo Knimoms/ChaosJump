@@ -1,15 +1,15 @@
 #pragma once
+#include "Game/Player.h"
 #include "Physics/CollisionObject.h"
-#include "Input/InputReceiverInterface.h"
 #include "Networking/SerializableInterface.h"
 #include "Objects/Polygon.h"
 #include "SDL3/SDL_rect.h"
 
 class Camera;
 
-class Player : public Polygon, public InputReceiverInterface, public SerializableInterface
+class ChaosJumpPlayer : public Polygon, public Player
 {
-    DECLARE_TYPE_REGISTER(Player)
+    DECLARE_TYPE_REGISTER(ChaosJumpPlayer)
 
 private:
 
@@ -32,8 +32,8 @@ public:
     Vector2 getViewLocation() const;
     bool isDead() const { return bDead; }
     
-    Player();
-    Player(const Vector2& size, const Vector2& position);
+    ChaosJumpPlayer();
+    ChaosJumpPlayer(const Vector2& size, const Vector2& position);
     
     void handleKeyPressed(SDL_Scancode scancode) override;
     void handleKeyTrigger(SDL_Scancode scancode, float deltaTime) override;

@@ -7,7 +7,7 @@
 #include "Debugging/DebugDefinitions.h"
 #include "Networking/NetPacket.h"
 #include "Networking/SerializableInterface.h"
-#include "Player/Player.h"
+#include "Player/ChaosJumpPlayer.h"
 
 class NetFactory {
     
@@ -57,6 +57,7 @@ void NetHandler::handleNetPacket(const NetPacket& packet, HSteamNetConnection se
         break;
     case OBJECTDESTROY:
     case OBJECTUPDATE:
+    case OBJECTOWNERSHIPGRANTED:
         handleObjectNetPacket(packet, sendingConnection);
     }
 }
@@ -304,10 +305,17 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet, HSteamNetConnect
         {
             object = *it;
         }
-            
-        if (object && ensure(object->getOwningConnection()))
+
+        if (packet.header.type == OBJECTUPDATE)
         {
-            object->deserialize(packet.body);
+            if (object && ensure(object->getOwningConnection()))
+            {
+                object->deserialize(packet.body);
+            }
+        }
+        else
+        {
+            object->setOwningConnection(0);
         }
     }
 }

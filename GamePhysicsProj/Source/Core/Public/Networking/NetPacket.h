@@ -12,7 +12,8 @@ enum EPacketTypes : uint8_t
     MESSAGE = 2,
     REMOTEPROCEDURECALL = 3,
     OBJECTDESTROY = 4,
-    OBJECTUPDATE = 5
+    OBJECTUPDATE = 5,
+    OBJECTOWNERSHIPGRANTED = 6
 };
 
 struct NetPacket

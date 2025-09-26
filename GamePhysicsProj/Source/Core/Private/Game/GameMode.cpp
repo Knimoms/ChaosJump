@@ -14,3 +14,8 @@ void GameMode::handleConnectionLeft(HSteamNetConnection connection)
 {
     std::erase(mJoinedConnections, connection);
 }
+
+void GameMode::setLocalPlayer(Player* inLocalPlayer)
+{
+    mLocalPlayer = inLocalPlayer;
+}

@@ -1,12 +1,12 @@
-#include "Player/Player.h"
+#include "Player/ChaosJumpPlayer.h"
 #include "Application.h"
 #include "Debugging/DebugDefinitions.h"
 #include "Networking/NetHandler.h"
 #include "Render/Camera.h"
 
-DEFINE_TYPE_REGISTER(Player, 5)
+DEFINE_TYPE_REGISTER(ChaosJumpPlayer, 5)
 
-void Player::handleCollisionHit(CollisionObject* collisionObject, const Vector2& collisionNormal)
+void ChaosJumpPlayer::handleCollisionHit(CollisionObject* collisionObject, const Vector2& collisionNormal)
 {
     if (!collisionObject && collisionNormal == Vector2{.x = 0, .y = -1}) //means we have hit the windowBorder
     {
@@ -26,16 +26,16 @@ void Player::handleCollisionHit(CollisionObject* collisionObject, const Vector2&
 
 }
 
-Vector2 Player::getViewLocation() const
+Vector2 ChaosJumpPlayer::getViewLocation() const
 {
     return mCamera->getCameraLocation();
 }
 
-Player::Player() : Player(Vector2{1, 1}, Vector2{0, 0})
+ChaosJumpPlayer::ChaosJumpPlayer() : ChaosJumpPlayer(Vector2{1, 1}, Vector2{0, 0})
 {
 }
 
-Player::Player(const Vector2& size, const Vector2& position) : Polygon({size*Vector2{0.f,-50.f}, size*Vector2{-47.5528f,-15.4508f}, size*Vector2{-29.3893f,40.4508f}, size*Vector2{29.3893f,40.4508f}, size*Vector2{47.5528f,-15.4508f}})
+ChaosJumpPlayer::ChaosJumpPlayer(const Vector2& size, const Vector2& position) : Polygon({size*Vector2{0.f,-50.f}, size*Vector2{-47.5528f,-15.4508f}, size*Vector2{-29.3893f,40.4508f}, size*Vector2{29.3893f,40.4508f}, size*Vector2{47.5528f,-15.4508f}})
 {
     setCollisionCategory(CollisionCategory::Player);
     mDampingPerSecond = {5.f, 0.f};
@@ -55,7 +55,7 @@ Player::Player(const Vector2& size, const Vector2& position) : Polygon({size*Vec
     setCanCollideWithWindowBorder(bWindowXCollide, bWindowYCollide);
 }
 
-void Player::handleKeyPressed(const SDL_Scancode scancode)
+void ChaosJumpPlayer::handleKeyPressed(const SDL_Scancode scancode)
 {
     switch (scancode)
     {
@@ -75,7 +75,7 @@ void Player::handleKeyPressed(const SDL_Scancode scancode)
     }
 }
 
-void Player::handleKeyTrigger(const SDL_Scancode scancode, float deltaTime)
+void ChaosJumpPlayer::handleKeyTrigger(const SDL_Scancode scancode, float deltaTime)
 {
     //if (scancode == SDL_SCANCODE_S || scancode == SDL_SCANCODE_DOWN)
     //{
@@ -83,7 +83,7 @@ void Player::handleKeyTrigger(const SDL_Scancode scancode, float deltaTime)
     //}
 }
 
-void Player::handleKeyReleased(const SDL_Scancode scancode)
+void ChaosJumpPlayer::handleKeyReleased(const SDL_Scancode scancode)
 {
     switch (scancode)
     {
@@ -102,9 +102,9 @@ void Player::handleKeyReleased(const SDL_Scancode scancode)
     }
 }
 
-void Player::tick(const float deltaTime)
+void ChaosJumpPlayer::tick(const float deltaTime)
 {
-    if (getOwningConnection()) return;
+    if (!isLocallyOwned()) return;
     if (bDead) return;
     
     const float deltaMovementX = mInputMovement.x * mSpeed;
@@ -119,7 +119,7 @@ void Player::tick(const float deltaTime)
     InputReceiverInterface::tick(deltaTime);
 }
 
-std::string Player::serialize() const
+std::string ChaosJumpPlayer::serialize() const
 {
     std::string serialized;
     serialized.resize(sizeof(mLocation));
@@ -129,7 +129,7 @@ std::string Player::serialize() const
     return serialized;
 }
 
-void Player::deserialize(std::string serialized)
+void ChaosJumpPlayer::deserialize(std::string serialized)
 {
     if (!ensure(serialized.size() >= sizeof(Vector2))) return;
 
