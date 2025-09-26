@@ -15,7 +15,7 @@ NetPacket::NetPacket(const SerializableInterface* object) : NetPacket(OBJECTUPDA
 {
 }
 
-NetPacket::NetPacket(uint8_t inType, const SerializableInterface* object, const std::string& inBody) : NetPacket(inType, object->serialize())
+NetPacket::NetPacket(uint8_t inType, const SerializableInterface* object, const std::string& inBody) : NetPacket(inType, inBody)
 {
     header.netGUID = object->getNetGUID();
     header.objectType = object->getTypeID();
