@@ -1,11 +1,63 @@
 ﻿#include "Networking/NetHandler.h"
 
 #include <chrono>
-#include <format>
-#include <ranges>
 #include <string>
 
 #include "Debugging/DebugDefinitions.h"
+#include "Networking/NetPacket.h"
+#include "Networking/SerializableInterface.h"
+#include "Player/Player.h"
+
+class NetFactory {
+    
+public:
+    
+    using FactoryFn = std::function<std::unique_ptr<SerializableInterface>()>;
+
+private:
+    
+    std::unordered_map<uint8_t, FactoryFn> mFactories;
+
+public:
+
+    static NetFactory& getInstance() {
+        static NetFactory factory;
+        return factory;
+    }
+
+    void registerType(uint8_t id, FactoryFn&& factoryFunction) {
+        mFactories[id] = std::move(factoryFunction);
+    }
+
+    std::unique_ptr<SerializableInterface> create(uint8_t id) const {
+        const auto it = mFactories.find(id);
+        if (it != mFactories.end())
+        {
+            return it->second();
+        }
+        
+        return nullptr;
+    }
+};
+
+void NetHandler::handleNetPacket(const NetPacket& packet) const
+{
+    switch (packet.header.type)
+    {
+    case INVALID:
+        ensure(false);
+        break;
+    case HEARTBEAT:
+        break;
+    case MESSAGE:
+        fprintf(stderr, "[MESSAGE] %s\n", packet.body.c_str());
+        break;
+    case REMOTEPROCEDURECALL:
+        break;    
+    default:
+        handleObjectNetPacket(packet);
+    }
+}
 
 NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
 {
@@ -19,37 +71,6 @@ NetHandler::NetHandler() : m_GameLobbyJoinRequested(this, &NetHandler::handleGam
        {
            fprintf(stderr, "[SNS] %s\n", msg);
        });
-}
-
-NetPacket::NetPacket(uint8_t inType, const std::string& inBody) : body(inBody)
-{
-    header.type = inType;
-    header.size = body.size();
-    header.timestamp = SteamNetworkingUtils()->GetLocalTimestamp();
-    
-}
-
-NetPacket::NetPacket(const void* data, const int size)
-{
-    if (!ensure(size > sizeof(Header))) return;
-    
-    memcpy(&header, data, sizeof(Header));
-
-    if (!ensure(size > sizeof(Header) + header.size)) return;
-    
-    const char* bodycstring = static_cast<const char*>(data) + sizeof(Header);
-    body.assign(bodycstring, header.size);
-}
-
-std::string NetPacket::toString() const
-{
-    std::string packageString;
-    packageString.resize(sizeof(header) + body.size());
-
-    memcpy(packageString.data(), &header, sizeof(header));
-    memcpy(packageString.data() + sizeof(header), body.data(), body.size());
-
-    return packageString;
 }
 
 void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
@@ -97,6 +118,27 @@ void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequest
     bConnectedAsClient = true;
 }
 
+void NetHandler::replicateObjects() const
+{
+}
+
+SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId) const
+{
+    const std::shared_ptr remoteObject = NetFactory::getInstance().create(typeId);
+    remoteObject->setOwnership(false);
+    mRemoteObjects.push_back(remoteObject);
+    
+    return remoteObject.get();
+}
+
+struct TypeRegister
+{
+    TypeRegister()
+    {
+        NetHandler::registerTypeID(5, [](){ return std::make_unique<Player>(); });
+    }
+};
+
 void NetHandler::host()
 {
     mListenSocket = SteamNetworkingSockets()->CreateListenSocketP2P(mVirtualPort, 0, nullptr);
@@ -127,8 +169,8 @@ void NetHandler::receiveMessages() const
                 const void* data = m->m_pData;
                 int len = m->m_cbSize;
 
-                std::string msg(static_cast<char*>(m->m_pData), m->m_cbSize);
-                fprintf(stderr, "Received %s\n", msg.c_str());
+                NetPacket packet(data, len);
+                handleNetPacket(packet);
                 m->Release();
             }
         }
@@ -147,13 +189,33 @@ void NetHandler::receiveMessages() const
                 const void* data = m->m_pData;
                 int len = m->m_cbSize;
                 
-                std::string msg(static_cast<char*>(m->m_pData), m->m_cbSize);
-                fprintf(stderr, "Received %s\n", msg.c_str());
-
+                NetPacket packet(data, len);
+                handleNetPacket(packet);
+                
                 m->Release();
             }
         }
     }
+}
+
+
+
+void NetHandler::handleObjectNetPacket(const NetPacket& packet) const
+{
+    const auto it = std::ranges::find_if(mNetworkObjects, [&](SerializableInterface* obj)
+        {
+            return obj->mNetGUID == packet.header.netGUID;
+        });
+
+
+    SerializableInterface* object = nullptr;
+            
+    if (it != mNetworkObjects.end())
+    {
+        
+    }
+
+    object->deserialize(packet.body);
 }
 
 void NetHandler::runCallbacks()
@@ -165,23 +227,32 @@ void NetHandler::runCallbacks()
         uint64_t now = SteamNetworkingUtils()->GetLocalTimestamp();
 
         if (now - mLastHeartbeat > 5000000) {
-            const char* msg = "ping";
-            SteamNetworkingSockets()->SendMessageToConnection(mServerConnection, msg, static_cast<int>(strlen(msg)), k_nSteamNetworkingSend_Unreliable, nullptr);
+            NetPacket packet(HEARTBEAT, "");
+
+            const std::string msg = packet.toString();
+            
+            SteamNetworkingSockets()->SendMessageToConnection(mServerConnection, msg.data(), static_cast<int>(strlen(msg.data())), k_nSteamNetworkingSend_Unreliable, nullptr);
             mLastHeartbeat = now;
         }
     }
-    else if (bHosting)
-    {
-        uint64_t now = SteamNetworkingUtils()->GetLocalTimestamp();
 
-        if (now - mLastHeartbeat > 5000000)
-        {
-            for (const auto& connection : mClientConnections)
-            {
-                const char* msg = "test";
-                SteamNetworkingSockets()->SendMessageToConnection(connection, msg, static_cast<int>(strlen(msg)), k_nSteamNetworkingSend_Unreliable, nullptr);
-                mLastHeartbeat = now;
-            }
-        }
+    if (bConnectedAsClient || bHosting)
+    {
+        replicateObjects();
     }
+}
+
+void NetHandler::addReplicatedObject(SerializableInterface* replicatedObject)
+{
+    mLocallyReplicatedObjects.push_back(replicatedObject);
+}
+
+void NetHandler::removeReplicatedObject(SerializableInterface* replicatedObject)
+{
+    std::erase(mLocallyReplicatedObjects, replicatedObject);
+}
+
+void NetHandler::registerTypeID(uint8_t typeID, std::function<std::unique_ptr<SerializableInterface>()>&& factoryFunction)
+{
+    NetFactory::getInstance().registerType(typeID, std::move(factoryFunction));
 }

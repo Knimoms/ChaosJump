@@ -1,7 +1,10 @@
 #include "Player/Player.h"
 #include "Application.h"
+#include "Debugging/DebugDefinitions.h"
+#include "Networking/NetHandler.h"
 #include "Render/Camera.h"
 
+DEFINE_TYPE_REGISTER(Player, 5)
 
 void Player::handleCollisionHit(CollisionObject* collisionObject, const Vector2& collisionNormal)
 {
@@ -26,6 +29,10 @@ void Player::handleCollisionHit(CollisionObject* collisionObject, const Vector2&
 Vector2 Player::getViewLocation() const
 {
     return mCamera->getCameraLocation();
+}
+
+Player::Player() : Player(Vector2{1, 1}, Vector2{0, 0})
+{
 }
 
 Player::Player(const Vector2& size, const Vector2& position) : Polygon({size*Vector2{0.f,-50.f}, size*Vector2{-47.5528f,-15.4508f}, size*Vector2{-29.3893f,40.4508f}, size*Vector2{29.3893f,40.4508f}, size*Vector2{47.5528f,-15.4508f}})
@@ -109,4 +116,23 @@ void Player::tick(const float deltaTime)
 
     Polygon::tick(deltaTime);
     InputReceiverInterface::tick(deltaTime);
+}
+
+std::string Player::serialize() const
+{
+    std::string serialized;
+    serialized.resize(sizeof(mLocation), sizeof(mVelocity));
+
+    memcpy(serialized.data(), &mLocation, sizeof(mLocation));
+    memcpy(serialized.data() + sizeof(mLocation), &mVelocity, sizeof(mVelocity));
+
+    return serialized;
+}
+
+void Player::deserialize(std::string serialized)
+{
+    if (!ensure(serialized.size() > sizeof(Vector2) * 2)) return;
+
+    memcpy(&mLocation, serialized.data(), sizeof(Vector2));
+    memcpy(&mVelocity, serialized.data() + sizeof(Vector2), sizeof(Vector2));
 }

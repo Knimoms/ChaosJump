@@ -1,44 +1,33 @@
 ﻿#pragma once
 
-#include <string>
+#include <functional>
+#include <memory>
 #include <vector>
 
+#include "NetPacket.h"
 #include "SteamSDK/public/steam/steam_api.h"
 
-
-struct NetPacket
-{
-
-    struct Header
-    {
-        uint8_t type;
-        uint32_t size;
-        uint64_t timestamp;
-    };
-    
-    Header header;
-    std::string body;
-
-    NetPacket(uint8_t inType, const std::string& inBody);
-    NetPacket(const void* data, int size);
-    std::string toString() const;
-};
+class SerializableInterface;
 
 class NetHandler
 {
 
 private:
 
+    mutable std::vector<std::shared_ptr<SerializableInterface>> mRemoteObjects;
+    std::vector<SerializableInterface*> mNetworkObjects;
+    std::vector<SerializableInterface*> mLocallyReplicatedObjects;
+
+    friend class SerializableInterface;  
+
     const int mVirtualPort = 1;
     
     HSteamListenSocket mListenSocket;
     HSteamNetPollGroup mPollGroup;
 
-
     bool bHosting = false;
     std::vector<HSteamNetConnection> mClientConnections = {};
 
-    
     bool bConnectedAsClient = false;
     HSteamNetConnection mServerConnection;
     uint64_t mLastHeartbeat = 0;
@@ -48,6 +37,13 @@ protected:
     STEAM_CALLBACK_MANUAL(NetHandler, handleConnStatusChanged, SteamNetConnectionStatusChangedCallback_t, mCallbackConnStatusChanged);
     STEAM_CALLBACK(NetHandler, handleGameLobbyJoinRequested, GameLobbyJoinRequested_t, m_GameLobbyJoinRequested);
     STEAM_CALLBACK(NetHandler, handleGameRichPresenceJoinRequested, GameRichPresenceJoinRequested_t, m_GameRichPresenceJoinRequested);
+
+
+    void replicateObjects() const;
+
+    SerializableInterface* createRemoteObject(uint8_t typeId) const;
+    void handleObjectNetPacket(const NetPacket& packet) const;
+    void handleNetPacket(const NetPacket& packet) const;
     
 public:
 
@@ -60,4 +56,8 @@ public:
 
     void runCallbacks();
     
+    void addReplicatedObject(SerializableInterface* replicatedObject);    
+    void removeReplicatedObject(SerializableInterface* replicatedObject);
+
+    static void registerTypeID(uint8_t typeID, std::function<std::unique_ptr<SerializableInterface>()>&& factoryFunction);
 };
