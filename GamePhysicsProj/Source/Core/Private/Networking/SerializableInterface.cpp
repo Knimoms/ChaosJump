@@ -14,8 +14,10 @@ void SerializableInterface::transferOwnershipToConnection(HSteamNetConnection ne
 
     if (newOwningConnection)
     {
-        const NetPacket packet(OBJECTOWNERSHIPGRANTED, this, {});
-        NetHandler::sendPacketToConnection(packet, newOwningConnection);
+        const NetPacket replicatePacket(this);
+        const NetPacket transferOwnerPacket(OBJECTOWNERSHIPGRANTED, this, {});
+        NetHandler::sendPacketToConnection(replicatePacket, newOwningConnection);
+        NetHandler::sendPacketToConnection(transferOwnerPacket, newOwningConnection);
     }
 
     setOwningConnection(newOwningConnection);
