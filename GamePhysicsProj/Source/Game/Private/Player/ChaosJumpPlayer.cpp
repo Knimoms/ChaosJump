@@ -152,7 +152,7 @@ void ChaosJumpPlayer::setOwningConnection(HSteamNetConnection inOwningConnection
         app.setRenderCamera(mCamera);
     }
 
-    constexpr bool bWindowXCollide = isLocallyOwned();
-    constexpr bool bWindowYCollide = isLocallyOwned();
+    const bool bWindowXCollide = isLocallyOwned();
+    const bool bWindowYCollide = isLocallyOwned();
     setCanCollideWithWindowBorder(bWindowXCollide, bWindowYCollide);
 }
