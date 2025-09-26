@@ -175,7 +175,7 @@ void NetHandler::replicateObject(const SerializableInterface* object) const
 {
     if (bConnectedAsClient)
     {
-        const NetPacket packet(object->getTypeID(), object->serialize());
+        const NetPacket packet(object);
         sendPacketToConnection(packet, mServerConnection);
         return;
     }
@@ -184,7 +184,7 @@ void NetHandler::replicateObject(const SerializableInterface* object) const
     {
         if (connection == object->getOwningConnection()) continue;
         
-        const NetPacket packet(object->getTypeID(), object->serialize());
+        const NetPacket packet(object);
         sendPacketToConnection(packet, connection);
     }
 }

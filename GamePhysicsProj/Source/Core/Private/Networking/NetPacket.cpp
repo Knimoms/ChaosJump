@@ -11,7 +11,11 @@ NetPacket::NetPacket(uint8_t inType, const std::string& inBody) : body(inBody)
     header.timestamp = SteamNetworkingUtils()->GetLocalTimestamp();
 }
 
-NetPacket::NetPacket(const uint8_t inType, const SerializableInterface* object, const std::string& inBody) : NetPacket(inType, inBody)
+NetPacket::NetPacket(const SerializableInterface* object) : NetPacket(OBJECTUPDATE, object, object->serialize())
+{
+}
+
+NetPacket::NetPacket(uint8_t inType, const SerializableInterface* object, const std::string& inBody) : NetPacket(inType, object->serialize())
 {
     header.netGUID = object->getNetGUID();
     header.objectType = object->getTypeID();
