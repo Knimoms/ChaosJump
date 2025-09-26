@@ -208,8 +208,9 @@ SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId, uint32_t n
     std::unique_ptr remoteObject = NetFactory::getInstance().create(typeId);
     remoteObject->mNetGUID = netGUID;
     remoteObject->registerObject();
+    SerializableInterface* object = remoteObject.get();
     mRemoteObjects.push_back(std::move(remoteObject));
-    return remoteObject.get();
+    return object;
 }
 
 void NetHandler::host()
