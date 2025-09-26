@@ -23,7 +23,7 @@ NetPacket::NetPacket(const void* data, const int size)
     
     memcpy(&header, data, sizeof(Header));
 
-    if (!ensure(size > sizeof(Header) + header.size)) return;
+    if (!ensure(size >= sizeof(Header) + header.size)) return;
     
     const char* bodycstring = static_cast<const char*>(data) + sizeof(Header);
     body.assign(bodycstring, header.size);
