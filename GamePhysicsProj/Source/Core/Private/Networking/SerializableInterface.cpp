@@ -5,7 +5,7 @@
 
 SerializableInterface::~SerializableInterface()
 {
-    mOnDestroyDelegate(this);
+    callOnDestroy();
 }
 
 void SerializableInterface::transferOwnershipToConnection(HSteamNetConnection newOwningConnection)
@@ -35,5 +35,8 @@ void SerializableInterface::registerObject()
 
 void SerializableInterface::callOnDestroy()
 {
-    mOnDestroyDelegate(this);
+    if (mOnDestroyDelegate)
+    {
+        mOnDestroyDelegate(this);
+    }
 }

@@ -120,6 +120,14 @@ NetHandler::NetHandler() : mListenSocket(0), mPollGroup(0), mServerConnection(0)
 {
 }
 
+NetHandler::~NetHandler()
+{
+    for (SerializableInterface* object : mNetworkObjects)
+    {
+        object->mOnDestroyDelegate = nullptr;
+    }
+}
+
 void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
 {
     fprintf(stderr, "Connection changed %d", pParam->m_info.m_eState);
@@ -347,9 +355,9 @@ void NetHandler::addNetworkObject(SerializableInterface* object)
     {
         const uint32_t netGUID = getFreeNetGUID();
         object->mNetGUID = netGUID;
-        mUsedNetGUIDs.insert(netGUID);
     }
 
+    mUsedNetGUIDs.insert(object->mNetGUID);
     object->mOnDestroyDelegate = [this](const SerializableInterface* serializableObject)
     {
         if (bHosting)

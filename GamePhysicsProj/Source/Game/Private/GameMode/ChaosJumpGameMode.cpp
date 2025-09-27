@@ -47,6 +47,46 @@ void ChaosJumpGameMode::clearObstaclesOutOfRange()
     }
 }
 
+void ChaosJumpGameMode::drawMenuDisplayText() const
+{
+    Application& app = Application::getApplication();
+
+    const uint64_t gameSeconds = mGameTime;
+
+    if (app.getNetHandler()->isHosting())
+    {
+        const DisplayText infoDisplayText
+        {
+            .screenPosition = {.x = 0, .y = -0.25},
+            .text = "Waiting for another player to join.",
+            .color = {.r = 1, .g = 0, .b = 0},
+            .textScale = {.x = 4, .y = 4}
+        };
+
+        app.addDisplayText(infoDisplayText);
+    }
+    else
+    {
+        const DisplayText titleDisplayText
+        {
+            .screenPosition = {.x = 0, .y = -0.25},
+            .text = bGameOver ? "Game Over": "Chaos Jump",
+            .color = {.r = 1, .g = 0, .b = 0},
+            .textScale = {.x = 4, .y = 4}
+        };
+
+        const DisplayText infoDisplayText
+        {
+            .screenPosition = {.x = 0, .y = 0.1},
+            .text = "Press H to host Game or join a friend via the Steam Overlay.",
+            .color = gameSeconds % 2 ? Color{1, 1, 1} : Color{0, 1, 0},
+            .textScale = {.x = 1.5, .y = 1.5}
+        };
+        app.addDisplayText(titleDisplayText);
+        app.addDisplayText(infoDisplayText);
+    }
+}
+
 ChaosJumpGameMode::ChaosJumpGameMode() = default;
 ChaosJumpGameMode::~ChaosJumpGameMode() = default;
 
@@ -126,28 +166,7 @@ void ChaosJumpGameMode::tick(const float deltaTime)
 
     if (!bGameInProgress)
     {
-        const uint64_t gameSeconds = mGameTime;
-
-        const DisplayText titleDisplayText
-        {
-            .screenPosition = {.x = 0, .y = -0.25},
-            .text = bGameOver ? "Game Over": "Chaos Jump",
-            .color = {.r = 1, .g = 0, .b = 0},
-            .textScale = {.x = 4, .y = 4}
-        };
-
-        const DisplayText infoDisplayText
-        {
-            .screenPosition = {.x = 0, .y = 0.1},
-            .text = "Press H to host Game or join a friend via the Steam Overlay.",
-            .color = gameSeconds % 2 ? Color{1, 1, 1} : Color{0, 1, 0},
-            .textScale = {.x = 1.5, .y = 1.5}
-        };
-
-        app.addDisplayText(titleDisplayText);
-        app.addDisplayText(infoDisplayText);
-
-        
+        drawMenuDisplayText();
         return;
     }
 

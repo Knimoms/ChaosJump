@@ -51,6 +51,8 @@ protected:
     void clearDroppedPlatforms();
     void clearObstaclesOutOfRange();
 
+    void drawMenuDisplayText() const;
+
 public:
 
     ChaosJumpGameMode();

@@ -54,10 +54,13 @@ public:
     static void sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection);
 
     NetHandler();
+    virtual ~NetHandler();
 
     bool initializeSteam();
     
     void host();
+    bool isHosting() const { return bHosting; }
+    bool isConnectedAsClient() const { return bConnectedAsClient; }
 
     void receiveMessages() const;
     void runCallbacks();
