@@ -86,13 +86,10 @@ static void logPacket(const NetPacket& packet, HSteamNetConnection receivingConn
         packet.body.c_str());
 }
 
-void NetHandler::sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection)
+void NetHandler::sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection, const bool bReliable)
 {
     const std::string msg = packet.toString();
-    //logPacket(packet, connection);
-    printHex(msg.data(), msg.size(), stderr);
-
-    SteamNetworkingSockets()->SendMessageToConnection(connection, msg.data(), msg.size(), k_nSteamNetworkingSend_Unreliable, nullptr);
+    SteamNetworkingSockets()->SendMessageToConnection(connection, msg.data(), msg.size(), bReliable ? k_nSteamNetworkingSend_Reliable : k_nSteamNetworkingSend_Unreliable, nullptr);
 }
 
 bool NetHandler::initializeSteam()
@@ -362,10 +359,11 @@ void NetHandler::addNetworkObject(SerializableInterface* object)
     {
         if (bHosting)
         {
-            NetPacket packet(OBJECTDESTROY, serializableObject, {});
+            const NetPacket packet(OBJECTDESTROY, serializableObject, {});
             for (HSteamNetConnection connection : mClientConnections)
             {
-                sendPacketToConnection(packet, connection);
+                constexpr bool bReliable = true;
+                sendPacketToConnection(packet, connection, bReliable);
             }
         }
         

@@ -51,7 +51,7 @@ protected:
 
 public:
     
-    static void sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection);
+    static void sendPacketToConnection(const NetPacket& packet, const HSteamNetConnection& connection, bool bReliable = false);
 
     NetHandler();
     virtual ~NetHandler();

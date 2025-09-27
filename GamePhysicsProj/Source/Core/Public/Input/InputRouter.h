@@ -1,5 +1,4 @@
 #pragma once
-#include <memory>
 #include <vector>
 
 #include "SDL3/SDL_scancode.h"
