@@ -28,6 +28,7 @@ private:
 protected:
 
     void handleCollisionHit(CollisionObject* collisionObject, const Vector2& collisionNormal) override;
+    void setIsDead(bool bInDead);
     
 public:
 
