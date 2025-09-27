@@ -63,15 +63,16 @@ void ChaosJumpGameMode::drawMenuDisplayText() const
             .textScale = {.x = 4, .y = 4}
         };
 
-        const DisplayText inviteText
+        const DisplayText actionDisplayText
         {
             .screenPosition = {.x = 0, .y = 0.1},
-            .text = "Press I to open Invite Dialogue.",
+            .text = "Press I to open Invite Dialogue, press C to close Session.",
             .color = {.r = 1, .g = 0, .b = 0},
             .textScale = {.x = 3, .y = 3}
         };
 
         app.addDisplayText(infoDisplayText);
+        app.addDisplayText(actionDisplayText);
     }
     else
     {
@@ -159,7 +160,7 @@ void ChaosJumpGameMode::gameOver()
 
 void ChaosJumpGameMode::hostSession()
 {
-    Application::getApplication().getNetHandler()->host();
+    Application::getApplication().getNetHandler()->hostSession();
 }
 
 void ChaosJumpGameMode::tick(const float deltaTime)
@@ -226,19 +227,37 @@ void ChaosJumpGameMode::tick(const float deltaTime)
 void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
 {
     NetHandler* netHandler = Application::getApplication().getNetHandler();
-    switch (scancode)
+
+    if (netHandler->isHosting())
     {
-    case SDL_SCANCODE_H:
-        netHandler->host();
-        break;
-    case SDL_SCANCODE_I:
-        netHandler->openInviteDialogue();
-        break;
-    case SDL_SCANCODE_F:
-        NetHandler::openFriendslist();
-        break;
-    default:
-        ;
+        switch (scancode)
+        {
+        case SDL_SCANCODE_I:
+            netHandler->openInviteDialogue();
+            break;
+        case SDL_SCANCODE_F:
+            NetHandler::openFriendslist();
+            break;
+        case SDL_SCANCODE_C:
+            netHandler->closeSession();
+            break;
+        default:
+            ;
+        }
+    }
+    else
+    {
+        switch (scancode)                    
+        {                                    
+        case SDL_SCANCODE_H:                 
+            netHandler->hostSession();       
+            break;                           
+        case SDL_SCANCODE_F:                 
+            NetHandler::openFriendslist();   
+            break;                           
+        default:                             
+            ;                                
+        }                                    
     }
 }
 

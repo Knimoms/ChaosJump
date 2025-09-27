@@ -58,7 +58,8 @@ public:
 
     bool initializeSteam();
     
-    void host();
+    void hostSession();
+    void closeSession();
     void openInviteDialogue() const;
     static void openFriendslist();
     

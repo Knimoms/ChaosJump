@@ -220,8 +220,9 @@ SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId, uint32_t n
     return object;
 }
 
-void NetHandler::host()
+void NetHandler::hostSession()
 {
+    if (bHosting) return;
     mListenSocket = SteamNetworkingSockets()->CreateListenSocketP2P(mVirtualPort, 0, nullptr);
     mPollGroup = SteamNetworkingSockets()->CreatePollGroup();
 
@@ -232,6 +233,28 @@ void NetHandler::host()
     SteamFriends()->SetRichPresence("status", "Hosting"); 
 
     bHosting = true;
+}
+
+void NetHandler::closeSession()
+{
+    if (!bHosting) return;
+    
+    if (mListenSocket != k_HSteamListenSocket_Invalid)
+    {
+        SteamNetworkingSockets()->CloseListenSocket(mListenSocket);
+        mListenSocket = k_HSteamListenSocket_Invalid;
+    }
+
+    for (const HSteamNetConnection connection : mClientConnections)
+    {
+        SteamNetworkingSockets()->CloseConnection(connection, 0, "Host shutting down", true);
+    }
+    
+    mClientConnections.clear();
+
+    SteamFriends()->ClearRichPresence();
+
+    bHosting = false;
 }
 
 void NetHandler::openInviteDialogue() const
