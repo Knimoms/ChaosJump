@@ -23,6 +23,8 @@ private:
 
     std::shared_ptr<Camera> mCamera = nullptr;
 
+    float mReachedHeight = 0.f;
+
 protected:
 
     void handleCollisionHit(CollisionObject* collisionObject, const Vector2& collisionNormal) override;
@@ -38,6 +40,8 @@ public:
     void handleKeyPressed(SDL_Scancode scancode) override;
     void handleKeyTrigger(SDL_Scancode scancode, float deltaTime) override;
     void handleKeyReleased(SDL_Scancode scancode) override;
+
+    float getReachedHeight() const { return mReachedHeight; }
 
     // Begin TickableInterface
     void tick(float deltaTime) override;

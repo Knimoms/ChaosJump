@@ -13,34 +13,36 @@
 
 DEFINE_DEFAULT_DELETER(ChunkGenerator)
 
+Vector2 ChaosJumpGameMode::sPlayerSpawnLocation = {.x = 0, .y = 200};
+
 void ChaosJumpPlayerDeleter::operator()(ChaosJumpPlayer* player) const
 {
     player->callOnDestroy();
     delete player;
 }
 
-void ChaosJumpGameMode::clearDroppedPlatforms()
+void ChaosJumpGameMode::clearDroppedPlatforms(const float currentHeight)
 {
     std::vector<int> droppedPlatformIndices = {};
     const size_t platformCount = mPlatforms.size(); 
     for (size_t i = platformCount - 1; i < std::numeric_limits<size_t>::max(); --i)
     {
         auto& platform = mPlatforms[i];
-        if (platform->getLocation().y > mLocalChaosJumpPlayer->getLocation().y + mChunkHeight)
+        if (platform->getLocation().y > currentHeight + mChunkHeight)
         {
             mPlatforms.erase(mPlatforms.begin() + i);
         }
     }
 }
 
-void ChaosJumpGameMode::clearObstaclesOutOfRange()
+void ChaosJumpGameMode::clearObstaclesOutOfRange(const float currentHeight)
 {
     std::vector<int> outOfRangeObstaclesIndices = {};
     const size_t obstacleCount = mObstacles.size(); 
     for (size_t i = obstacleCount - 1; i < std::numeric_limits<size_t>::max(); --i)
     {
         auto& obstacle = mObstacles[i];
-        if (obstacle->getLocation().y > mLocalChaosJumpPlayer->getLocation().y + 3 * mChunkHeight)
+        if (obstacle->getLocation().y > currentHeight + 3 * mChunkHeight)
         {
             mObstacles.erase(mObstacles.begin() + i);
         }
@@ -121,11 +123,17 @@ void ChaosJumpGameMode::handleConnectionJoined(const HSteamNetConnection connect
     }
 }
 
-void ChaosJumpGameMode::setLocalPlayer(Player* inLocalPlayer)
+void ChaosJumpGameMode::addPlayer(Player* player)
 {
-    GameMode::setLocalPlayer(inLocalPlayer);
+    GameMode::addPlayer(player);
+    mChaosJumpPlayers.push_back(static_cast<ChaosJumpPlayer*>(player));
 
-    mLocalChaosJumpPlayer = dynamic_cast<ChaosJumpPlayer*>(inLocalPlayer);
+}
+
+void ChaosJumpGameMode::removePlayer(Player* player)
+{
+    GameMode::removePlayer(player);
+    std::erase(mChaosJumpPlayers, static_cast<ChaosJumpPlayer*>(player));
 }
 
 void ChaosJumpGameMode::startGame()
@@ -143,14 +151,14 @@ void ChaosJumpGameMode::startGame()
     {
         for (HSteamNetConnection connection : getJoinedConnections())
         {
-            mPlayers[connection] = std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>(new ChaosJumpPlayer(size, mPlayerSpawnLocation));
-            mPlayers[connection]->registerObject();
-            mPlayers[connection]->transferOwnershipToConnection(connection);
+            mPlayerMap[connection] = std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>(new ChaosJumpPlayer(size, sPlayerSpawnLocation));
+            mPlayerMap[connection]->registerObject();
+            mPlayerMap[connection]->transferOwnershipToConnection(connection);
         }
     }
 
     std::unique_ptr<Platform> platform = std::make_unique<Platform>();
-    platform->setLocation(mPlayerSpawnLocation + Vector2{.x = 0, .y = 300});
+    platform->setLocation(sPlayerSpawnLocation + Vector2{.x = 0, .y = 300});
     mPlatforms.push_back(std::move(platform));
 
     Application& app = Application::getApplication();
@@ -210,33 +218,45 @@ void ChaosJumpGameMode::tick(const float deltaTime)
 
     app.addDisplayText(obstacleAliveCount);
     app.addDisplayText(scoreText);
+
+    const auto [hostHeight, clientHeight] = [&]()
+    {
+        std::pair<float, float> heights;
+
+        for (ChaosJumpPlayer* player : mChaosJumpPlayers)
+        {
+            float* settingHeight;
+            if (player->wasRemotelyCreated())
+            {
+                settingHeight = player->isLocallyOwned() ? &heights.second : &heights.first;
+            }
+            else
+            {
+                settingHeight = player->isLocallyOwned() ? &heights.first : &heights.second;
+            }
+            
+            *settingHeight = player->getReachedHeight();
+        }
+
+        return heights;
+    }();
     
-    if (!mLocalChaosJumpPlayer) return;
-
-    //if (mLocalChaosJumpPlayer->isDead())
-    //{
-    //    gameOver();
-    //    return;
-    //}
-
-    clearDroppedPlatforms();
-    clearObstaclesOutOfRange();
-
-    const float currentPlayerHeight = -(mLocalChaosJumpPlayer->getLocation().y - mPlayerSpawnLocation.y);
-    mReachedHeight = std::max(mReachedHeight, currentPlayerHeight/100);
+    const float viewHeight = app.getCurrentViewLocation().y;
+    clearDroppedPlatforms(viewHeight);
+    clearObstaclesOutOfRange(viewHeight);
 
     const DisplayText heightText
     {
         .screenPosition = {.x = 0, .y = -1},
-        .text = std::format("{:.2f}", mReachedHeight),
+        .text = std::format("{:.2f} : {:.2f}", hostHeight, clientHeight),
         .color = {.r = 1, .g = 1, .b = 1},
         .textScale = {.x = 2, .y = 2},
         .alignment = {.x = 0, .y = -1}
     };
 
     app.addDisplayText(heightText);
-    
-    const int currentChunkHeightCoord = std::abs(static_cast<int>(currentPlayerHeight / mChunkHeight));
+
+    const int currentChunkHeightCoord = std::abs(static_cast<int>(viewHeight) / mChunkHeight);
 
     for (int i = mChunkGenerator->getChunkGenerationHeight() + 1; currentChunkHeightCoord + 3 > i; ++i)
     {

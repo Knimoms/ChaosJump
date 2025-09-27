@@ -19,11 +19,10 @@ class ChaosJumpGameMode : public GameMode, public TickableInterface, public Inpu
 {
 private:
 
-    Vector2 mPlayerSpawnLocation = {.x = 0, .y = 200};
+    static Vector2 sPlayerSpawnLocation;
 
-    ChaosJumpPlayer* mLocalChaosJumpPlayer = nullptr;
-
-    std::map<HSteamNetConnection, std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>> mPlayers;
+    std::vector<ChaosJumpPlayer*> mChaosJumpPlayers;
+    std::map<HSteamNetConnection, std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>> mPlayerMap;
     std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter> mChunkGenerator = nullptr;
 
     float mChunkHeight = 0.f;
@@ -48,11 +47,10 @@ private:
         uint32_t mClientScore = 0;
     };
 
-
 protected:
 
-    void clearDroppedPlatforms();
-    void clearObstaclesOutOfRange();
+    void clearDroppedPlatforms(float currentHeight);
+    void clearObstaclesOutOfRange(float currentHeight);
 
     void drawMenuDisplayText() const;
 
@@ -64,7 +62,8 @@ public:
     //~ Begin GameMode Interface
     std::string handleJoiningConnection(HSteamNetConnection connection) override;
     void handleConnectionJoined(HSteamNetConnection connection) override;
-    void setLocalPlayer(Player* inLocalPlayer) override;
+    void addPlayer(Player* player) override;
+    void removePlayer(Player* player) override;
     //~ End GameMode Interface
     
     virtual void startGame();
@@ -85,5 +84,7 @@ public:
     void deserialize(std::string serialized) override;
     uint8_t getTypeID() const override { return 200; }
     //~ End SerializableInterface
+
     
+    static Vector2 getPlayerSpawnLocation() { return sPlayerSpawnLocation; }
 };

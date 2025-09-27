@@ -28,6 +28,7 @@ protected:
     uint32_t mNetGUID = 0;
 
     HSteamNetConnection mOwningConnection;
+    bool bRemotelyCreated = false;
 
     friend class NetHandler;
 
@@ -51,6 +52,7 @@ public:
     
     HSteamNetConnection getOwningConnection() const { return mOwningConnection; }
     bool isLocallyOwned() const { return !mOwningConnection; }
-
+    bool wasRemotelyCreated() const { return bRemotelyCreated; }
+    
     void callOnDestroy();
 };

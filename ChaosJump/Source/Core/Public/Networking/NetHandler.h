@@ -18,7 +18,7 @@ private:
 
     std::unordered_set<uint32_t> mUsedNetGUIDs;
 
-    mutable std::vector<std::unique_ptr<SerializableInterface>> mRemoteObjects;
+    mutable std::vector<std::unique_ptr<SerializableInterface>> mRemotelyCreatedObjects;
     std::vector<SerializableInterface*> mNetworkObjects;
 
     const int mVirtualPort = 1;

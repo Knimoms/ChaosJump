@@ -1,6 +1,7 @@
 #include "Player/ChaosJumpPlayer.h"
 #include "Application.h"
 #include "Debugging/DebugDefinitions.h"
+#include "GameMode/ChaosJumpGameMode.h"
 #include "Networking/NetHandler.h"
 #include "Render/Camera.h"
 
@@ -91,6 +92,9 @@ void ChaosJumpPlayer::handleKeyReleased(const SDL_Scancode scancode)
 
 void ChaosJumpPlayer::tick(const float deltaTime)
 {
+    const float currentPlayerHeight = -getLocation().y - ChaosJumpGameMode::getPlayerSpawnLocation().y;
+    mReachedHeight = std::max(mReachedHeight, currentPlayerHeight/100);
+
     if (!isLocallyOwned()) return;
     if (bDead) return;
     
