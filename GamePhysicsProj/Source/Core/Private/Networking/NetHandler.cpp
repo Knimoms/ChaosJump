@@ -351,12 +351,11 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet, HSteamNetConnect
             object = *it;
         }
 
+        if (!ensure(object)) return;
+
         if (packet.header.type == OBJECTUPDATE)
         {
-            if (ensure(object))
-            {
-                object->deserialize(packet.body);
-            }
+            object->deserialize(packet.body);
         }
         else
         {
