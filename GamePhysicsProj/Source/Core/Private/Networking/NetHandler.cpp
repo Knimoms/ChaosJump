@@ -345,7 +345,7 @@ void NetHandler::addNetworkObject(SerializableInterface* object)
 {
     if (!object->mNetGUID)
     {
-        const uint32_t netGUID = object->mNetGUID;
+        const uint32_t netGUID = getFreeNetGUID();
         object->mNetGUID = netGUID;
         mUsedNetGUIDs.insert(netGUID);
     }
