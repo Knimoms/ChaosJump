@@ -100,7 +100,17 @@ void ChaosJumpGameMode::drawMenuDisplayText() const
 ChaosJumpGameMode::ChaosJumpGameMode() = default;
 ChaosJumpGameMode::~ChaosJumpGameMode() = default;
 
-void ChaosJumpGameMode::handleConnectionJoined(HSteamNetConnection connection)
+std::string ChaosJumpGameMode::handleJoiningConnection(const HSteamNetConnection connection)
+{
+    if (getJoinedConnections().size() >= 2)
+    {
+        return "Session full";
+    }
+    
+    return GameMode::handleJoiningConnection(connection);
+}
+
+void ChaosJumpGameMode::handleConnectionJoined(const HSteamNetConnection connection)
 {
     GameMode::handleConnectionJoined(connection);
 

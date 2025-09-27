@@ -59,6 +59,7 @@ public:
     ~ChaosJumpGameMode() override;
 
     //~ Begin GameMode Interface
+    std::string handleJoiningConnection(HSteamNetConnection connection) override;
     void handleConnectionJoined(HSteamNetConnection connection) override;
     void setLocalPlayer(Player* inLocalPlayer) override;
     //~ End GameMode Interface

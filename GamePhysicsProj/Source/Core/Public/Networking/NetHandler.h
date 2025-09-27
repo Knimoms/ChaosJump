@@ -38,7 +38,7 @@ private:
 
 protected:
 
-    STEAM_CALLBACK_MANUAL(NetHandler, handleConnStatusChanged, SteamNetConnectionStatusChangedCallback_t, mCallbackConnStatusChanged);
+    STEAM_CALLBACK_MANUAL(NetHandler, handleConnectionStatusChanged, SteamNetConnectionStatusChangedCallback_t, mCallbackConnStatusChanged);
     STEAM_CALLBACK(NetHandler, handleGameLobbyJoinRequested, GameLobbyJoinRequested_t, m_GameLobbyJoinRequested);
     STEAM_CALLBACK(NetHandler, handleGameRichPresenceJoinRequested, GameRichPresenceJoinRequested_t, m_GameRichPresenceJoinRequested);
 

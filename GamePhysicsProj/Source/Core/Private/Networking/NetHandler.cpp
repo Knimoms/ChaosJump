@@ -100,7 +100,7 @@ bool NetHandler::initializeSteam()
     bSteamInitialized = true;
     SteamNetworkingUtils()->InitRelayNetworkAccess();
 
-    mCallbackConnStatusChanged.Register(this, &NetHandler::handleConnStatusChanged);
+    mCallbackConnStatusChanged.Register(this, &NetHandler::handleConnectionStatusChanged);
 
     SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Msg,
        [](ESteamNetworkingSocketsDebugOutputType, const char* msg)
@@ -125,25 +125,29 @@ NetHandler::~NetHandler()
     }
 }
 
-void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
+void NetHandler::handleConnectionStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
 {
-    fprintf(stderr, "Connection changed %d", pParam->m_info.m_eState);
-
     auto* sockets = SteamNetworkingSockets();
     
     switch (pParam->m_info.m_eState) {
     case k_ESteamNetworkingConnectionState_Connecting:
         if (bHosting)
         {
-            sockets->AcceptConnection(pParam->m_hConn);
-            sockets->SetConnectionPollGroup(pParam->m_hConn, mPollGroup);
-            mClientConnections.push_back(pParam->m_hConn);
+            GameMode* gameMode = Application::getApplication().getGameMode();
+            const std::string error = gameMode->handleJoiningConnection(pParam->m_hConn);
+
+            if (error.empty())
             {
-                NetPacket packet(MESSAGE, "hello whats up");
+                sockets->AcceptConnection(pParam->m_hConn);
+                sockets->SetConnectionPollGroup(pParam->m_hConn, mPollGroup);
+    
+                const NetPacket packet(MESSAGE, "hello whats up");
                 sendPacketToConnection(packet, pParam->m_hConn);
             }
-            Application::getApplication().getGameMode()->handleConnectionJoined(pParam->m_hConn);
-            printf("Client connected!\n");
+            else
+            {
+                sockets->CloseConnection(pParam->m_hConn, 1000, error.c_str(),true);
+            }
         }
 
         break;
@@ -157,7 +161,11 @@ void NetHandler::handleConnStatusChanged(SteamNetConnectionStatusChangedCallback
             printf("Client disconnected or problem.\n");
         }
         break;
-    default: break;
+    case k_ESteamNetworkingConnectionState_Connected:
+        mClientConnections.push_back(pParam->m_hConn);
+        Application::getApplication().getGameMode()->handleConnectionJoined(pParam->m_hConn);
+        break;
+    default: ;
     }
 }
 
@@ -324,43 +332,42 @@ void NetHandler::receiveMessages() const
 
 void NetHandler::handleObjectNetPacket(const NetPacket& packet, HSteamNetConnection sendingConnection) const
 {
-    const auto it = std::ranges::find_if(mNetworkObjects, [&](SerializableInterface* obj)
+    if (packet.header.type == OBJECTDESTROY)
+    {
+        std::erase_if(mRemoteObjects, [&](std::unique_ptr<SerializableInterface>& obj)
+        {
+            return obj->mNetGUID == packet.header.netGUID;
+        });
+        return;
+    }
+    
+    SerializableInterface* const object = [&]()
+    {
+        const auto it = std::ranges::find_if(mNetworkObjects, [&](SerializableInterface* obj)
         {
             return obj->mNetGUID == packet.header.netGUID;
         });
 
-
-    SerializableInterface* object = nullptr;
-
-    if (packet.header.type == OBJECTDESTROY)
-    {
         if (it == mNetworkObjects.end())
         {
-            
+            SerializableInterface* remoteObject = createRemoteObject(packet.header.type, packet.header.netGUID);
+            remoteObject->setOwningConnection(sendingConnection);
+
+            return remoteObject;
         }
+
+        return *it;
+    }();
+
+    if (!ensure(object)) return;
+
+    if (packet.header.type == OBJECTUPDATE)
+    {
+        object->deserialize(packet.body);
     }
-    else
+    else // if (packet.header.type == OBJECTOWNERSHIPGRANTED)
     {
-        if (it == mNetworkObjects.end())
-        {
-            object = createRemoteObject(packet.header.type, packet.header.netGUID);
-            object->setOwningConnection(sendingConnection);
-        }
-        else
-        {
-            object = *it;
-        }
-
-        if (!ensure(object)) return;
-
-        if (packet.header.type == OBJECTUPDATE)
-        {
-            object->deserialize(packet.body);
-        }
-        else
-        {
-            object->setOwningConnection(0);
-        }
+        object->setOwningConnection(0);
     }
 }
 

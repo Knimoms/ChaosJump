@@ -5,6 +5,11 @@ GameMode::GameMode()
     mNetGUID = 200;
 }
 
+std::string GameMode::handleJoiningConnection(HSteamNetConnection connection)
+{
+    return "";
+}
+
 void GameMode::handleConnectionJoined(HSteamNetConnection connection)
 {
     mJoinedConnections.push_back(connection);

@@ -23,6 +23,7 @@ public:
 
     std::vector<HSteamNetConnection> getJoinedConnections() const { return mJoinedConnections; }
 
+    virtual std::string handleJoiningConnection(HSteamNetConnection connection);
     virtual void handleConnectionJoined(HSteamNetConnection connection);
     virtual void handleConnectionLeft(HSteamNetConnection connection);
 
