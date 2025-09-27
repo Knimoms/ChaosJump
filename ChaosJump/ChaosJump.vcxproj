@@ -22,7 +22,7 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{B17C9448-58AC-42B3-A230-CC621B7A496E}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>GamePhysicsProj</RootNamespace>
+    <RootNamespace>ChaosJump</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -123,7 +123,10 @@
       <AdditionalDependencies>$(ProjectDir)Source\ThirdParty\SteamSDK\redistributable_bin\win64\steam_api64.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /Y /I "$(ProjectDir)Source\ThirdParty\SteamSDK\redistributable_bin\win64\steam_api64.dll" "$(TargetDir)"</Command>
+      <Command>
+		xcopy /Y /I "$(ProjectDir)Source\ThirdParty\SteamSDK\redistributable_bin\win64\steam_api64.dll" "$(TargetDir)"
+		xcopy /Y /I "$(SolutionDir)steam_appid.txt" "$(TargetDir)"
+	  </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

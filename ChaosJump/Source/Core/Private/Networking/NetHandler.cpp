@@ -330,7 +330,7 @@ void NetHandler::receiveMessages() const
     }
 }
 
-void NetHandler::handleObjectNetPacket(const NetPacket& packet, HSteamNetConnection sendingConnection) const
+void NetHandler::handleObjectNetPacket(const NetPacket& packet, const HSteamNetConnection sendingConnection) const
 {
     if (packet.header.type == OBJECTDESTROY)
     {
