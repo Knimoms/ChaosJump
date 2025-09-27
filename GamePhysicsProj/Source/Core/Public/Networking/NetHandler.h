@@ -59,6 +59,9 @@ public:
     bool initializeSteam();
     
     void host();
+    void openInviteDialogue() const;
+    static void openFriendslist();
+    
     bool isHosting() const { return bHosting; }
     bool isConnectedAsClient() const { return bConnectedAsClient; }
 

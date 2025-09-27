@@ -63,6 +63,14 @@ void ChaosJumpGameMode::drawMenuDisplayText() const
             .textScale = {.x = 4, .y = 4}
         };
 
+        const DisplayText inviteText
+        {
+            .screenPosition = {.x = 0, .y = 0.1},
+            .text = "Press I to open Invite Dialogue.",
+            .color = {.r = 1, .g = 0, .b = 0},
+            .textScale = {.x = 3, .y = 3}
+        };
+
         app.addDisplayText(infoDisplayText);
     }
     else
@@ -78,10 +86,11 @@ void ChaosJumpGameMode::drawMenuDisplayText() const
         const DisplayText infoDisplayText
         {
             .screenPosition = {.x = 0, .y = 0.1},
-            .text = "Press H to host Game or join a friend via the Steam Overlay.",
+            .text = "Press H to host Game, press F to open friends list.",
             .color = gameSeconds % 2 ? Color{1, 1, 1} : Color{0, 1, 0},
             .textScale = {.x = 1.5, .y = 1.5}
         };
+        
         app.addDisplayText(titleDisplayText);
         app.addDisplayText(infoDisplayText);
     }
@@ -216,10 +225,18 @@ void ChaosJumpGameMode::tick(const float deltaTime)
 
 void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
 {
+    NetHandler* netHandler = Application::getApplication().getNetHandler();
     switch (scancode)
     {
     case SDL_SCANCODE_H:
-        hostSession();
+        netHandler->host();
+        break;
+    case SDL_SCANCODE_I:
+        netHandler->openInviteDialogue();
+        break;
+    case SDL_SCANCODE_F:
+        NetHandler::openFriendslist();
+        break;
     default:
         ;
     }

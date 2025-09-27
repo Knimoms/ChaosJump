@@ -225,9 +225,26 @@ void NetHandler::host()
     mListenSocket = SteamNetworkingSockets()->CreateListenSocketP2P(mVirtualPort, 0, nullptr);
     mPollGroup = SteamNetworkingSockets()->CreatePollGroup();
 
-    SteamFriends()->SetRichPresence("connect", std::to_string(SteamUser()->GetSteamID().ConvertToUint64()).c_str());
+    const uint64 hostId64 = SteamUser()->GetSteamID().ConvertToUint64();
+    const std::string connect = std::to_string(hostId64) + ":" + std::to_string(mVirtualPort);
+
+    SteamFriends()->SetRichPresence("connect", connect.c_str());
+    SteamFriends()->SetRichPresence("status", "Hosting"); 
 
     bHosting = true;
+}
+
+void NetHandler::openInviteDialogue() const
+{
+    if (!bHosting) return;
+    
+    const uint64 hostId = SteamUser()->GetSteamID().ConvertToUint64();
+    const std::string connect = std::to_string(hostId) + ":" + std::to_string(mVirtualPort);
+    SteamFriends()->ActivateGameOverlayInviteDialogConnectString(connect.c_str());}
+
+void NetHandler::openFriendslist()
+{
+    SteamFriends()->ActivateGameOverlay("Friends");
 }
 
 void NetHandler::receiveMessages() const
