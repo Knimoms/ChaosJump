@@ -43,6 +43,9 @@ private:
         bool bQueueGameOver = false;
     
         uint32_t mSeed = 0;
+
+        uint32_t mHostScore = 0;
+        uint32_t mClientScore = 0;
     };
 
 

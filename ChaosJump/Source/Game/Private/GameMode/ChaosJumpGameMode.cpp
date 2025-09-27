@@ -192,22 +192,32 @@ void ChaosJumpGameMode::tick(const float deltaTime)
 
     const DisplayText obstacleAliveCount
     {
-        .screenPosition = {.x = 0, .y = -0.95},
+        .screenPosition = {.x = -0.95f, .y = -0.95f},
         .text = std::format("Obstacles alive: {}", mObstacles.size()),
+        .color = {.r = 1, .g = 1, .b = 1},
+        .textScale = {.x = 1.25, .y = 1.25},
+        .alignment = {.x = -1, .y = -1}
+    };
+
+    const DisplayText scoreText
+    {
+        .screenPosition = {.x = 0, .y = -0.95f},
+        .text = std::format("{} : {}", mHostScore, mClientScore),
         .color = {.r = 1, .g = 1, .b = 1},
         .textScale = {.x = 1.5, .y = 1.5},
         .alignment = {.x = 0, .y = -1}
     };
 
     app.addDisplayText(obstacleAliveCount);
+    app.addDisplayText(scoreText);
     
     if (!mLocalChaosJumpPlayer) return;
 
-    if (mLocalChaosJumpPlayer->isDead())
-    {
-        gameOver();
-        return;
-    }
+    //if (mLocalChaosJumpPlayer->isDead())
+    //{
+    //    gameOver();
+    //    return;
+    //}
 
     clearDroppedPlatforms();
     clearObstaclesOutOfRange();
@@ -286,6 +296,12 @@ std::string ChaosJumpGameMode::serialize() const
     destinationAddress = destinationAddress + sizeof(bQueueGameOver);
     memcpy(destinationAddress, &mSeed, sizeof(mSeed));
 
+    destinationAddress = destinationAddress + sizeof(mSeed);
+    memcpy(destinationAddress, &mHostScore, sizeof(mHostScore));
+
+    destinationAddress = destinationAddress + sizeof(mHostScore);
+    memcpy(destinationAddress, &mClientScore, sizeof(mClientScore));
+
     return serialized;
 }
 
@@ -299,4 +315,8 @@ void ChaosJumpGameMode::deserialize(std::string serialized)
     memcpy(&bQueueGameOver, sourceAddress, sizeof(bool));
     sourceAddress += sizeof(bool);
     memcpy(&mSeed, sourceAddress, sizeof(uint32_t));
+    sourceAddress += sizeof(uint32_t);
+    memcpy(&mHostScore, sourceAddress, sizeof(uint32_t));
+    sourceAddress += sizeof(uint32_t);
+    memcpy(&mClientScore, sourceAddress, sizeof(uint32_t));
 }
