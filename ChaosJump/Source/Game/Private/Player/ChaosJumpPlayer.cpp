@@ -113,9 +113,10 @@ void ChaosJumpPlayer::tick(const float deltaTime)
 std::string ChaosJumpPlayer::serialize() const
 {
     std::string serialized;
-    serialized.resize(sizeof(mLocation));
+    serialized.resize(sizeof(mLocation) + sizeof(bDead));
 
     memcpy(serialized.data(), &mLocation, sizeof(mLocation));
+    memcpy(serialized.data() + sizeof(mLocation), &bDead, sizeof(bDead));
 
     return serialized;
 }
@@ -125,6 +126,7 @@ void ChaosJumpPlayer::deserialize(std::string serialized)
     if (!ensure(serialized.size() >= sizeof(Vector2))) return;
 
     memcpy(&mLocation, serialized.data(), sizeof(Vector2));
+    memcpy(&bDead, serialized.data() + sizeof(Vector2), sizeof(bool));
 }
 
 void ChaosJumpPlayer::setOwningConnection(HSteamNetConnection inOwningConnection)
