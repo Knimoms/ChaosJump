@@ -353,7 +353,7 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet, HSteamNetConnect
 
         if (packet.header.type == OBJECTUPDATE)
         {
-            if (object && ensure(object->getOwningConnection()))
+            if (ensure(object))
             {
                 object->deserialize(packet.body);
             }
