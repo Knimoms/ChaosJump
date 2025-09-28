@@ -20,6 +20,10 @@ void GameMode::handleConnectionLeft(HSteamNetConnection connection)
     std::erase(mJoinedConnections, connection);
 }
 
+void GameMode::handleNetworkError()
+{
+}
+
 void GameMode::addPlayer(Player* player)
 {
     mPlayers.push_back(player);

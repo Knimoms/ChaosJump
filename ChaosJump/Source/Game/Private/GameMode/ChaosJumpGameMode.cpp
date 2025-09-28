@@ -99,7 +99,7 @@ void ChaosJumpGameMode::drawMenuDisplayText() const
         const DisplayText titleDisplayText
         {
             .screenPosition = {.x = 0, .y = -0.25},
-            .text = bGameOver ? "Game Over": "Chaos Jump",
+            .text = "Chaos Jump",
             .color = {.r = 1, .g = 0, .b = 0},
             .textScale = {.x = 4, .y = 4}
         };
@@ -213,6 +213,13 @@ void ChaosJumpGameMode::handleConnectionJoined(const HSteamNetConnection connect
     }
 }
 
+void ChaosJumpGameMode::handleNetworkError()
+{
+    GameMode::handleNetworkError();
+
+    endGame();
+}
+
 void ChaosJumpGameMode::addPlayer(Player* player)
 {
     GameMode::addPlayer(player);
@@ -234,18 +241,12 @@ void ChaosJumpGameMode::evaluateScoringPlayer()
     float highestReachedHeight = 0.f;
     for (ChaosJumpPlayer* player : mChaosJumpPlayers)
     {
-        if (!highestPlayer)
-        {
-            highestPlayer = player;
-            continue;
-        }
-
         const float currentReachedHeight = player->getReachedHeight();
-
-        if (currentReachedHeight > highestReachedHeight)
+        
+        if (!highestPlayer || currentReachedHeight > highestReachedHeight)
         {
             highestPlayer = player;
-            highestReachedHeight = currentReachedHeight;
+            highestReachedHeight = player->getReachedHeight();
         }
     }
 
@@ -274,7 +275,6 @@ void ChaosJumpGameMode::evaluateScoringPlayer()
 void ChaosJumpGameMode::startGame()
 {
     bGameInProgress = true;
-    bGameOver = false;
 
     if (isLocallyOwned())
     {
@@ -310,10 +310,26 @@ void ChaosJumpGameMode::reset()
     }
 }
 
-void ChaosJumpGameMode::gameOver()
+void ChaosJumpGameMode::endGame()
 {
-    bGameOver = true;
-    bGameInProgress = false;
+    Application& app = Application::getApplication();
+    NetHandler* netHandler = app.getNetHandler();
+
+    if (netHandler->isHosting())
+    {
+        netHandler->closeSession();
+    }
+    else if (netHandler->isConnectedAsClient())
+    {
+        netHandler->closeServerConnection();
+    }
+
+    std::unique_ptr gameMode = std::make_unique<ChaosJumpGameMode>();
+    app.getInputRouter()->addInputReceiver(gameMode.get());
+    app.getInputRouter()->removeInputReceiver(this);
+    gameMode->registerObject();
+
+    app.setGameMode(std::move(gameMode));
 }
 
 void ChaosJumpGameMode::hostSession()
@@ -425,6 +441,11 @@ void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
         default:                             
             ;                                
         }                                    
+    }
+
+    if (scancode == SDL_SCANCODE_ESCAPE)
+    {
+        endGame();
     }
 }
 

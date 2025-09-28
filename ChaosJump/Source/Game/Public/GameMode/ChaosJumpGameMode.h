@@ -31,8 +31,6 @@ private:
     std::vector<std::unique_ptr<Platform>> mPlatforms = {};
     std::vector<std::unique_ptr<CollisionObject>> mObstacles = {};
 
-    bool bGameOver = false;
-
     float mGameTime = 0.f;
 
     float mEndPhaseSeconds = -1.f;
@@ -66,6 +64,7 @@ public:
     //~ Begin GameMode Interface
     std::string handleJoiningConnection(HSteamNetConnection connection) override;
     void handleConnectionJoined(HSteamNetConnection connection) override;
+    void handleNetworkError() override;
     void addPlayer(Player* player) override;
     void removePlayer(Player* player) override;
     //~ End GameMode Interface
@@ -76,8 +75,8 @@ protected:
     
     virtual void startGame();
     virtual void reset();
-    virtual void gameOver();
-
+    virtual void endGame();
+    
     static void hostSession();
 
 public:

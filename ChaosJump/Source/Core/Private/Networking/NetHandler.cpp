@@ -160,6 +160,11 @@ void NetHandler::handleConnectionStatusChanged(SteamNetConnectionStatusChangedCa
             Application::getApplication().getGameMode()->handleConnectionLeft(pParam->m_hConn);
             printf("Client disconnected or problem.\n");
         }
+        else if (bConnectedAsClient)
+        {
+            
+            bConnectedAsClient = false;
+        }
         break;
     case k_ESteamNetworkingConnectionState_Connected:
         mClientConnections.push_back(pParam->m_hConn);
@@ -264,6 +269,12 @@ void NetHandler::closeSession()
     SteamFriends()->ClearRichPresence();
 
     bHosting = false;
+}
+
+void NetHandler::closeServerConnection()
+{
+    SteamNetworkingSockets()->CloseConnection(mServerConnection, 0, "Client leaving.", true);
+    bConnectedAsClient = false;
 }
 
 void NetHandler::openInviteDialogue() const

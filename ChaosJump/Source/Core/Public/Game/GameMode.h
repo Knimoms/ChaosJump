@@ -28,6 +28,8 @@ public:
     virtual void handleConnectionJoined(HSteamNetConnection connection);
     virtual void handleConnectionLeft(HSteamNetConnection connection);
 
+    virtual void handleNetworkError();
+
     virtual void addPlayer(Player* player);    
     virtual void removePlayer(Player* player);
 

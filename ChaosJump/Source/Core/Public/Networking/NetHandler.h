@@ -60,6 +60,8 @@ public:
     
     void hostSession();
     void closeSession();
+    void closeServerConnection();
+    
     void openInviteDialogue() const;
     static void openFriendslist();
     
