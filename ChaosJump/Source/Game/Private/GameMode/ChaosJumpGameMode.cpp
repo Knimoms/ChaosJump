@@ -358,7 +358,10 @@ void ChaosJumpGameMode::tick(const float deltaTime)
         if (mEndPhaseSeconds > 0.f) break;
         
     default:
-        evaluateScoringPlayer();
+        if (isLocallyOwned())
+        {
+            evaluateScoringPlayer();
+        }
     }
 
     drawGameHUD(deltaTime);
