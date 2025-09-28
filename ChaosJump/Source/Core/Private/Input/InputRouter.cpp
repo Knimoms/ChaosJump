@@ -5,7 +5,8 @@
 
 void InputRouter::routeKeyEvent(const SDL_Scancode scancode, const bool pressed) const
 {
-    for (InputReceiverInterface* inputReceiver : mInputReceivers)
+    auto inputReceiversCopy = mInputReceivers;
+    for (InputReceiverInterface* inputReceiver : inputReceiversCopy)
     {
         inputReceiver->handleKeyInput(scancode, pressed);
     }
