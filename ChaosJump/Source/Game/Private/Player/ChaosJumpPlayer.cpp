@@ -99,6 +99,7 @@ void ChaosJumpPlayer::reset()
 {
     mReachedHeight = 0.f;
     setIsDead(false);
+    resetOverlappingObjects();
 }
 
 void ChaosJumpPlayer::tick(const float deltaTime)
@@ -137,6 +138,11 @@ void ChaosJumpPlayer::deserialize(std::string serialized)
     if (!ensure(serialized.size() >= sizeof(Vector2))) return;
 
     memcpy(&mLocation, serialized.data(), sizeof(Vector2));
+
+    if (isLocallyOwned())
+    {
+        mCamera->setCameraHeight(mLocation.y);
+    }
     
     bool bNewDead;
     memcpy(&bNewDead, serialized.data() + sizeof(Vector2), sizeof(bool));

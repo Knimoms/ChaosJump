@@ -18,6 +18,7 @@ private:
 public:
 
     Vector2 getCameraLocation() const { return mCameraLocation + mFollowOffset; }
+    void setCameraHeight(float inHeight);
 
     Camera(const Vector2& inFollowOffset, CollisionObject* inFollowingObject);
 

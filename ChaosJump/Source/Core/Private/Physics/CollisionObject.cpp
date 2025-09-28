@@ -242,23 +242,23 @@ void CollisionObject::insertOverlappingObject(CollisionObject* inCollisionObject
 {
     mOverlappingObjects.insert(inCollisionObject);
 
-    if (inCollisionObject)
-    {
-        mOverlapDestroyEventIds[inCollisionObject] = inCollisionObject->mOnDestroyed.subscribe([this](CollisionObject* collisionObject)
-        {
-            removeOverlappingObject(collisionObject);
-        });
-    }
+    //if (inCollisionObject)
+    //{
+    //    mOverlapDestroyEventIds[inCollisionObject] = inCollisionObject->mOnDestroyed.subscribe([this](CollisionObject* collisionObject)
+    //    {
+    //        removeOverlappingObject(collisionObject);
+    //    });
+    //}
 }
 
 void CollisionObject::removeOverlappingObject(CollisionObject* inCollisionObject)
 {
     mOverlappingObjects.erase(inCollisionObject);
-    if (inCollisionObject)
-    {
-        inCollisionObject->mOnDestroyed.unsubscribe(mOverlapDestroyEventIds[inCollisionObject]);
-        mOverlapDestroyEventIds.erase(inCollisionObject);
-    }
+    //if (inCollisionObject)
+    //{
+    //    inCollisionObject->mOnDestroyed.unsubscribe(mOverlapDestroyEventIds[inCollisionObject]);
+    //    mOverlapDestroyEventIds.erase(inCollisionObject);
+    //}
 }
 
 void CollisionObject::removeFromBucket()
@@ -425,4 +425,9 @@ CollisionResult CollisionObject::getCollisionResultOnLocation(const Vector2& inL
 CollisionResult CollisionObject::getMoveCollisionResult(const float deltaTime) const
 {
     return getCollisionResultOnLocation(getMoveLocation(deltaTime));
+}
+
+void CollisionObject::resetOverlappingObjects()
+{
+    mOverlappingObjects.clear();
 }

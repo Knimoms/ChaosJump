@@ -2,6 +2,11 @@
 
 #include "Physics/CollisionObject.h"
 
+void Camera::setCameraHeight(const float inHeight)
+{
+    mCameraLocation.y = inHeight;
+}
+
 Camera::Camera(const Vector2& inFollowOffset, CollisionObject* inFollowingObject) : mFollowOffset(inFollowOffset), mFollowingObject(inFollowingObject)
 {
 }

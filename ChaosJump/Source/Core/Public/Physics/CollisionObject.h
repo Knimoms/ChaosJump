@@ -138,5 +138,8 @@ protected:
 
     virtual CollisionResult getCollisionResultOnLocation(const Vector2& inLocation) const;
     virtual CollisionResult getMoveCollisionResult(float deltaTime) const;
-        
+
+public:
+
+    void resetOverlappingObjects();
 };
