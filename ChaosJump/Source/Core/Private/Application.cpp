@@ -219,7 +219,7 @@ void Application::tickObjects(const float deltaSeconds) const
         {
             destroyedTickableIndices.push_back(static_cast<int>(i));
             continue;
-        }
+        }   
         
         tickable->tick(deltaSeconds);
     }

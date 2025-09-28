@@ -284,6 +284,7 @@ void ChaosJumpGameMode::startGame()
 void ChaosJumpGameMode::reset()
 {
     mEndPhaseSeconds = -1.f;
+
     
     if (isLocallyOwned())
     {
@@ -362,6 +363,8 @@ void ChaosJumpGameMode::tick(const float deltaTime)
         {
             evaluateScoringPlayer();
         }
+
+        return;
     }
 
     drawGameHUD(deltaTime);
