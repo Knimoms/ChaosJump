@@ -254,8 +254,11 @@ void CollisionObject::insertOverlappingObject(CollisionObject* inCollisionObject
 void CollisionObject::removeOverlappingObject(CollisionObject* inCollisionObject)
 {
     mOverlappingObjects.erase(inCollisionObject);
-    inCollisionObject->mOnDestroyed.unsubscribe(mOverlapDestroyEventIds[inCollisionObject]);
-    mOverlapDestroyEventIds.erase(inCollisionObject);
+    if (inCollisionObject)
+    {
+        inCollisionObject->mOnDestroyed.unsubscribe(mOverlapDestroyEventIds[inCollisionObject]);
+        mOverlapDestroyEventIds.erase(inCollisionObject);
+    }
 }
 
 void CollisionObject::removeFromBucket()
