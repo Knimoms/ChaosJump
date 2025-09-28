@@ -351,7 +351,7 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet, const HSteamNetC
 
         if (it == mNetworkObjects.end())
         {
-            SerializableInterface* remoteObject = createRemoteObject(packet.header.type, packet.header.netGUID);
+            SerializableInterface* remoteObject = createRemoteObject(packet.header.objectType, packet.header.netGUID);
             remoteObject->setOwningConnection(sendingConnection);
 
             return remoteObject;
