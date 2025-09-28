@@ -265,6 +265,8 @@ void ChaosJumpGameMode::evaluateScoringPlayer()
             NetHandler::sendPacketToConnection(replicatePacket, connection, bReliable);
         }
     }
+
+    bWantsToReset = false;
     
     reset();
 }
@@ -437,7 +439,7 @@ std::string ChaosJumpGameMode::serialize() const
     memcpy(destinationAddress, &bWantsToStartGame, sizeof(bWantsToStartGame));
 
     destinationAddress = destinationAddress + sizeof(bWantsToStartGame);
-    memcpy(destinationAddress, &bGameInProgress, sizeof(bGameInProgress));
+    memcpy(destinationAddress, &bWantsToReset, sizeof(bWantsToReset));
 
     destinationAddress = destinationAddress + sizeof(bWantsToReset);
     memcpy(destinationAddress, &mSeed, sizeof(mSeed));
@@ -464,7 +466,7 @@ void ChaosJumpGameMode::deserialize(std::string serialized)
     if (bWantsToStartGame)
     {
         reset();
-        bWantsToStartGame = false;
+        bWantsToReset = false;
     }
 
     uint32_t newSeed;
