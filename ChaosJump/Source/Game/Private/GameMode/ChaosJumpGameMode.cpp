@@ -288,14 +288,6 @@ void ChaosJumpGameMode::reset()
     if (isLocallyOwned())
     {
         setSeed(std::random_device()());
-        for (const auto& [connection, player] : mPlayerMap)
-        {
-            player->setLocation(sPlayerSpawnLocation);
-            
-            const NetPacket replicatePacket(this);
-            constexpr bool bReliable = true;
-            NetHandler::sendPacketToConnection(replicatePacket, connection, bReliable);
-        }
     }
 
     for (ChaosJumpPlayer* player : mChaosJumpPlayers)
