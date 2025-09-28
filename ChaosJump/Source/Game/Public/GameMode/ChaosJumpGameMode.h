@@ -40,7 +40,7 @@ private:
     struct //Replicated Properties
     {
         bool bWantsToStartGame = false;
-        bool bQueueGameOver = false;
+        bool bWantsToReset = false;
     
         uint32_t mSeed = 0;
 

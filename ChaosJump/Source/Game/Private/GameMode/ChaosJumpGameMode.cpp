@@ -254,6 +254,18 @@ void ChaosJumpGameMode::evaluateScoringPlayer()
         highestPlayer->isLocallyOwned() ? ++mHostScore : ++mClientScore;
     }
 
+    bWantsToStartGame = true;
+    const NetPacket replicatePacket(this);
+
+    for (HSteamNetConnection connection : getJoinedConnections())
+    {
+        if (connection)
+        {
+            constexpr bool bReliable = true;
+            NetHandler::sendPacketToConnection(replicatePacket, connection, bReliable);
+        }
+    }
+    
     reset();
 }
 
@@ -427,7 +439,7 @@ std::string ChaosJumpGameMode::serialize() const
     destinationAddress = destinationAddress + sizeof(bWantsToStartGame);
     memcpy(destinationAddress, &bGameInProgress, sizeof(bGameInProgress));
 
-    destinationAddress = destinationAddress + sizeof(bQueueGameOver);
+    destinationAddress = destinationAddress + sizeof(bWantsToReset);
     memcpy(destinationAddress, &mSeed, sizeof(mSeed));
     
     destinationAddress = destinationAddress + sizeof(mSeed);
@@ -446,8 +458,14 @@ void ChaosJumpGameMode::deserialize(std::string serialized)
     const uint8_t* sourceAddress = reinterpret_cast<uint8_t*>(serialized.data());
     memcpy(&bWantsToStartGame, sourceAddress, sizeof(bool));
     sourceAddress += sizeof(bool);
-    memcpy(&bQueueGameOver, sourceAddress, sizeof(bool));
+    memcpy(&bWantsToReset, sourceAddress, sizeof(bool));
     sourceAddress += sizeof(bool);
+
+    if (bWantsToStartGame)
+    {
+        reset();
+        bWantsToStartGame = false;
+    }
 
     uint32_t newSeed;
     memcpy(&newSeed, sourceAddress, sizeof(uint32_t));
@@ -457,20 +475,9 @@ void ChaosJumpGameMode::deserialize(std::string serialized)
         setSeed(newSeed);
     }
 
-    uint32_t newHostScore;
+    sourceAddress += sizeof(uint32_t);
+    memcpy(&mHostScore, sourceAddress, sizeof(uint32_t));
 
     sourceAddress += sizeof(uint32_t);
-    memcpy(&newHostScore, sourceAddress, sizeof(uint32_t));
-
-    uint32_t newClientScore;
-
-    sourceAddress += sizeof(uint32_t);
-    memcpy(&newClientScore, sourceAddress, sizeof(uint32_t));
-
-    if (newHostScore != mHostScore || newClientScore != mClientScore)
-    {
-        mHostScore = newHostScore;
-        mClientScore = newClientScore;
-        reset();
-    }
+    memcpy(&mClientScore, sourceAddress, sizeof(uint32_t));
 }
