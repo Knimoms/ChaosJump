@@ -144,6 +144,7 @@ void ChaosJumpPlayer::deserialize(std::string serialized)
     if (bDead != bNewDead)
     {
         setIsDead(bNewDead);
+        setCanMove(!bNewDead);
     }
 }
 
