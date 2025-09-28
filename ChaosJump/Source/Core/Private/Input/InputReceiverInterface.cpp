@@ -4,9 +4,11 @@
 
 void InputReceiverInterface::handleKeyInput(const SDL_Scancode scancode, const bool bPressed)
 {
+    const bool bWasPressed = mKeyDownMap[scancode]; 
+    mKeyDownMap[scancode] = bPressed;
     if (bPressed)
     {
-        if (!mKeyDownMap[scancode])
+        if (!bWasPressed)
         {
             handleKeyPressed(scancode);
         }
@@ -15,8 +17,6 @@ void InputReceiverInterface::handleKeyInput(const SDL_Scancode scancode, const b
     {
         handleKeyReleased(scancode);
     }
-    
-    mKeyDownMap[scancode] = bPressed;
 }
 
 void InputReceiverInterface::handleKeyPressed(const SDL_Scancode scancode)
