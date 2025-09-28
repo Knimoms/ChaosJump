@@ -463,7 +463,7 @@ void ChaosJumpGameMode::deserialize(std::string serialized)
     memcpy(&bWantsToReset, sourceAddress, sizeof(bool));
     sourceAddress += sizeof(bool);
 
-    if (bWantsToStartGame)
+    if (bWantsToReset)
     {
         reset();
         bWantsToReset = false;
