@@ -277,6 +277,8 @@ void ChaosJumpGameMode::startGame()
     const Vector2& windowSize = app.getWindowSize();
     
     mChunkHeight = windowSize.y;
+
+    reset();
 }
 
 void ChaosJumpGameMode::reset()
