@@ -99,6 +99,12 @@ void ChaosJumpPlayer::reset()
 {
     mReachedHeight = 0.f;
     setIsDead(false);
+    
+    if (isLocallyOwned())
+    {
+        mCamera->setCameraHeight(mLocation.y);
+    }
+    
     resetOverlappingObjects();
 }
 
@@ -139,11 +145,6 @@ void ChaosJumpPlayer::deserialize(std::string serialized)
 
     memcpy(&mLocation, serialized.data(), sizeof(Vector2));
 
-    if (isLocallyOwned())
-    {
-        mCamera->setCameraHeight(mLocation.y);
-    }
-    
     bool bNewDead;
     memcpy(&bNewDead, serialized.data() + sizeof(Vector2), sizeof(bool));
 
