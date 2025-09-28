@@ -284,7 +284,6 @@ void ChaosJumpGameMode::startGame()
 void ChaosJumpGameMode::reset()
 {
     mEndPhaseSeconds = -1.f;
-
     
     if (isLocallyOwned())
     {
@@ -375,6 +374,8 @@ void ChaosJumpGameMode::tick(const float deltaTime)
 
     const int currentChunkHeightCoord = std::abs(static_cast<int>(viewHeight) / mChunkHeight);
 
+    if (!mChunkGenerator) return;
+    
     for (int i = mChunkGenerator->getChunkGenerationHeight() + 1; currentChunkHeightCoord + 3 > i; ++i)
     {
         mChunkGenerator->generateChunk(i, mPlatforms, mObstacles);
