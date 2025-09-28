@@ -9,7 +9,7 @@ DEFINE_TYPE_REGISTER(ChaosJumpPlayer, 5)
 
 void ChaosJumpPlayer::handleCollisionHit(CollisionObject* collisionObject, const Vector2& collisionNormal)
 {
-    if (!collisionObject) //means we have hit the windowBorder
+    if (!collisionObject && collisionNormal == Vector2{.x = 0, .y = -1}) //means we have hit the windowBorder
     {
         setIsDead(true);
         return;
@@ -22,6 +22,7 @@ void ChaosJumpPlayer::handleCollisionHit(CollisionObject* collisionObject, const
     {
         mVelocity.y = std::min(-mMinJumpVelocity, mVelocity.y);
     }
+
 }
 
 void ChaosJumpPlayer::setIsDead(const bool bInDead)
@@ -45,10 +46,7 @@ ChaosJumpPlayer::ChaosJumpPlayer(const Vector2& size, const Vector2& position) :
     setCollisionCategory(CollisionCategory::Player);
     mDampingPerSecond = {5.f, 0.f};
     setLocation(position);
-
-    const bool bWindowXCollide = true;
-    const bool bWindowYCollide = true;
-    setCanCollideWithWindowBorder(bWindowXCollide, bWindowYCollide);}
+}
 
 void ChaosJumpPlayer::handleKeyPressed(const SDL_Scancode scancode)
 {
@@ -170,7 +168,7 @@ void ChaosJumpPlayer::setOwningConnection(HSteamNetConnection inOwningConnection
         mCamera.reset();
     }
 
-    //const bool bWindowXCollide = isLocallyOwned();
-    //const bool bWindowYCollide = isLocallyOwned();
-    //setCanCollideWithWindowBorder(bWindowXCollide, bWindowYCollide);
+    const bool bWindowXCollide = isLocallyOwned();
+    const bool bWindowYCollide = isLocallyOwned();
+    setCanCollideWithWindowBorder(bWindowXCollide, bWindowYCollide);
 }
