@@ -102,8 +102,8 @@ void ChaosJumpPlayer::reset()
     
     if (isLocallyOwned())
     {
-        mCamera->setCameraHeight(mLocation.y);
         setLocation(ChaosJumpGameMode::getPlayerSpawnLocation());
+        mCamera->setCameraHeight(0);
     }
     
     resetOverlappingObjects();
