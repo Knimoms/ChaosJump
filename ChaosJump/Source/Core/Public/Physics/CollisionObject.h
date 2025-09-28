@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "CollisionShapeInterface.h"
+#include "Base/Event.h"
 #include "Base/TickableInterface.h"
 #include "Math/Vector2.h"
 
@@ -110,12 +111,17 @@ public:
 
     CollisionResponse getCollisionResponseForCategory(CollisionCategory inCollisionCategory) const;
 
+    TEvent<void, CollisionObject*> mOnDestroyed;
+
 private:
 
     std::unordered_set<CollisionObject*> mOverlappingObjects;
-    std::unordered_set<CollisionObject*> mBlockingObjects;
+    std::map<CollisionObject*, size_t> mOverlapDestroyEventIds;
 
 protected:
+
+    void insertOverlappingObject(CollisionObject* inCollisionObject);
+    void removeOverlappingObject(CollisionObject* inCollisionObject);
 
     void removeFromBucket();
 

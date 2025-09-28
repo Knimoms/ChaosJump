@@ -54,6 +54,7 @@ CollisionObject::CollisionObject()
 
 CollisionObject::~CollisionObject()
 {
+    mOnDestroyed.broadcast(this);
     removeFromBucket();
 }
 
@@ -237,6 +238,22 @@ CollisionResponse CollisionObject::getCollisionResponseForCategory(const Collisi
     return mCollisionResponseConfig[inCollisionCategory];
 }
 
+void CollisionObject::insertOverlappingObject(CollisionObject* inCollisionObject)
+{
+    mOverlappingObjects.insert(inCollisionObject);
+    mOverlapDestroyEventIds[inCollisionObject] = inCollisionObject->mOnDestroyed.subscribe([this](CollisionObject* collisionObject)
+    {
+        removeOverlappingObject(collisionObject);
+    });
+}
+
+void CollisionObject::removeOverlappingObject(CollisionObject* inCollisionObject)
+{
+    mOverlappingObjects.erase(inCollisionObject);
+    inCollisionObject->mOnDestroyed.unsubscribe(mOverlapDestroyEventIds[inCollisionObject]);
+    mOverlapDestroyEventIds.erase(inCollisionObject);
+}
+
 void CollisionObject::removeFromBucket()
 {
     auto& collisionCategoryBuckets = sCollisionCategoryBuckets[mCollisionCategory];
@@ -252,11 +269,11 @@ void CollisionObject::handleCollision(const CollisionResult& collisionResult)
     
     if (collisionObject)
     {
-        if (mOverlappingObjects.contains(collisionObject) || mBlockingObjects.contains(collisionObject)) return;
+        if (mOverlappingObjects.contains(collisionObject)) return;
 
         if (bBlocked)
         {
-            mOverlappingObjects.insert(collisionObject);
+            insertOverlappingObject(collisionObject);
         }
     }
 
@@ -266,8 +283,7 @@ void CollisionObject::handleCollision(const CollisionResult& collisionResult)
     }
     else
     {
-        mOverlappingObjects.insert(collisionObject);
-        handleCollisionBegin(collisionObject, collisionNormal);
+        insertOverlappingObject(collisionObject);
     }
     
 }
@@ -275,6 +291,7 @@ void CollisionObject::handleCollision(const CollisionResult& collisionResult)
 void CollisionObject::updateCollision(const float deltaTime)
 {
     std::vector<CollisionObject*> stoppedOverlappingObjects = {};
+
     for (CollisionObject* collisionObject : mOverlappingObjects)
     {
         const Vector2 moveLocation = getMoveLocation(deltaTime);
@@ -285,13 +302,11 @@ void CollisionObject::updateCollision(const float deltaTime)
                 const Vector2 otherLocation = collisionObject->getLocation();
                 return mCollisionShape->isCollidingWithShapeAtLocation(moveLocation, collisionObject->getCollisionShape(), otherLocation);
             }
-            else
-            {
-                Application& app = Application::getApplication();
-                const Vector2& windowSize = app.getWindowSize();
-                const Vector2 currentViewLocation = app.getCurrentViewLocation();
-                return mCollisionShape->isCollidingWithWindowBorderAtLocation(moveLocation, currentViewLocation, windowSize);
-            }
+            
+            Application& app = Application::getApplication();
+            const Vector2& windowSize = app.getWindowSize();
+            const Vector2 currentViewLocation = app.getCurrentViewLocation();
+            return mCollisionShape->isCollidingWithWindowBorderAtLocation(moveLocation, currentViewLocation, windowSize);
         }();
         
         if (!result.bCollided)
@@ -306,26 +321,8 @@ void CollisionObject::updateCollision(const float deltaTime)
 
     for (CollisionObject* collisionObject : stoppedOverlappingObjects)
     {
-        mOverlappingObjects.erase(collisionObject);
+        removeOverlappingObject(collisionObject);
         handleCollisionEnd(collisionObject);
-    }
-
-    std::vector<CollisionObject*> stoppedBlockingObjects = {};
-    for (CollisionObject* collisionObject : mBlockingObjects)
-    {
-        const Vector2 moveLocation = getMoveLocation(deltaTime);
-        const Vector2 otherLocation = collisionObject->getLocation();
-        const CollisionResult result = mCollisionShape->isCollidingWithShapeAtLocation(moveLocation, collisionObject->getCollisionShape(), otherLocation);
-        
-        if (!result.bCollided)
-        {
-            stoppedBlockingObjects.push_back(collisionObject);
-        }
-    }
-
-    for (CollisionObject* collisionObject : stoppedBlockingObjects)
-    {
-        mBlockingObjects.erase(collisionObject);
     }
 }
 
