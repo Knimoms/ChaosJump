@@ -12,7 +12,6 @@ void ChaosJumpPlayer::handleCollisionHit(CollisionObject* collisionObject, const
     if (!collisionObject && collisionNormal == Vector2{.x = 0, .y = -1}) //means we have hit the windowBorder
     {
         setIsDead(true);
-        setCanMove(false);
         return;
     }
 
@@ -30,6 +29,7 @@ void ChaosJumpPlayer::setIsDead(const bool bInDead)
 {
     bDead = bInDead;
     setColor(bDead ? Color{.r = 1, .g = 0, .b = 0} : Color{.r = 0, .g = 1, .b = 0});
+    setCanMove(!bInDead);
 }
 
 Vector2 ChaosJumpPlayer::getViewLocation() const
@@ -144,7 +144,6 @@ void ChaosJumpPlayer::deserialize(std::string serialized)
     if (bDead != bNewDead)
     {
         setIsDead(bNewDead);
-        setCanMove(!bNewDead);
     }
 }
 
