@@ -422,10 +422,11 @@ void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
     }
 }
 
+constexpr int expectedPacketSize = sizeof(bool) * 2 + 3 * sizeof(uint32_t);
 std::string ChaosJumpGameMode::serialize() const
 {
     std::string serialized;
-    serialized.resize(sizeof(bWantsToStartGame) + sizeof(bGameInProgress) + sizeof(mSeed));
+    serialized.resize(expectedPacketSize);
 
     uint8_t* destinationAddress = reinterpret_cast<uint8_t*>(serialized.data());
 
@@ -448,7 +449,7 @@ std::string ChaosJumpGameMode::serialize() const
 
 void ChaosJumpGameMode::deserialize(std::string serialized)
 {
-    if (!ensure(serialized.size() >= sizeof(bool) * 2 + sizeof(uint32_t))) return;
+    if (!ensure(serialized.size() >= expectedPacketSize)) return;
 
     const uint8_t* sourceAddress = reinterpret_cast<uint8_t*>(serialized.data());
     memcpy(&bWantsToStartGame, sourceAddress, sizeof(bool));
