@@ -226,6 +226,37 @@ void ChaosJumpGameMode::removePlayer(Player* player)
     std::erase(mChaosJumpPlayers, static_cast<ChaosJumpPlayer*>(player));
 }
 
+void ChaosJumpGameMode::evaluateScoringPlayer()
+{
+    if (!ensure(isLocallyOwned())) return;
+    
+    ChaosJumpPlayer* highestPlayer = nullptr;
+    float highestReachedHeight = 0.f;
+    for (ChaosJumpPlayer* player : mChaosJumpPlayers)
+    {
+        if (!highestPlayer)
+        {
+            highestPlayer = player;
+            continue;
+        }
+
+        const float currentReachedHeight = player->getReachedHeight();
+
+        if (currentReachedHeight > highestReachedHeight)
+        {
+            highestPlayer = player;
+            highestReachedHeight = currentReachedHeight;
+        }
+    }
+
+    if (highestReachedHeight > 0.f)
+    {
+        highestPlayer->isLocallyOwned() ? ++mHostScore : ++mClientScore;
+    }
+
+    reset();
+}
+
 void ChaosJumpGameMode::startGame()
 {
     bGameInProgress = true;
@@ -250,6 +281,8 @@ void ChaosJumpGameMode::startGame()
 
 void ChaosJumpGameMode::reset()
 {
+    mEndPhaseSeconds = -1.f;
+    
     if (isLocallyOwned())
     {
         setSeed(std::random_device()());
@@ -320,14 +353,10 @@ void ChaosJumpGameMode::tick(const float deltaTime)
             mEndPhaseSeconds -= deltaTime;
         }
 
-        if (mEndPhaseSeconds < 0.f)
-        {
-            reset();
-        }
+        if (mEndPhaseSeconds > 0.f) break;
         
-        break;
     default:
-        mEndPhaseSeconds = -1.f;
+        evaluateScoringPlayer();
     }
 
     drawGameHUD(deltaTime);
@@ -395,7 +424,7 @@ std::string ChaosJumpGameMode::serialize() const
 
     destinationAddress = destinationAddress + sizeof(bQueueGameOver);
     memcpy(destinationAddress, &mSeed, sizeof(mSeed));
-
+    
     destinationAddress = destinationAddress + sizeof(mSeed);
     memcpy(destinationAddress, &mHostScore, sizeof(mHostScore));
 
@@ -409,7 +438,7 @@ void ChaosJumpGameMode::deserialize(std::string serialized)
 {
     if (!ensure(serialized.size() >= sizeof(bool) * 2 + sizeof(uint32_t))) return;
 
-    uint8_t* sourceAddress = reinterpret_cast<uint8_t*>(serialized.data());
+    const uint8_t* sourceAddress = reinterpret_cast<uint8_t*>(serialized.data());
     memcpy(&bWantsToStartGame, sourceAddress, sizeof(bool));
     sourceAddress += sizeof(bool);
     memcpy(&bQueueGameOver, sourceAddress, sizeof(bool));
@@ -422,9 +451,21 @@ void ChaosJumpGameMode::deserialize(std::string serialized)
     {
         setSeed(newSeed);
     }
-    
+
+    uint32_t newHostScore;
+
     sourceAddress += sizeof(uint32_t);
-    memcpy(&mHostScore, sourceAddress, sizeof(uint32_t));
+    memcpy(&newHostScore, sourceAddress, sizeof(uint32_t));
+
+    uint32_t newClientScore;
+
     sourceAddress += sizeof(uint32_t);
-    memcpy(&mClientScore, sourceAddress, sizeof(uint32_t));
+    memcpy(&newClientScore, sourceAddress, sizeof(uint32_t));
+
+    if (newHostScore != mHostScore || newClientScore != mClientScore)
+    {
+        mHostScore = newHostScore;
+        mClientScore = newClientScore;
+        reset();
+    }
 }

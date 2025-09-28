@@ -69,6 +69,10 @@ public:
     void addPlayer(Player* player) override;
     void removePlayer(Player* player) override;
     //~ End GameMode Interface
+
+protected:
+
+    void evaluateScoringPlayer();
     
     virtual void startGame();
     virtual void reset();
@@ -76,6 +80,7 @@ public:
 
     static void hostSession();
 
+public:
     //~ Begin TickableInterface
     void tick(float deltaTime) override;
     //~ End TickableInterface
