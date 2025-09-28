@@ -44,6 +44,8 @@ public:
 
     float getReachedHeight() const { return mReachedHeight; }
 
+    void reset();
+
     // Begin TickableInterface
     void tick(float deltaTime) override;
     // End TickableInterface

@@ -20,11 +20,12 @@ class ChaosJumpGameMode : public GameMode, public TickableInterface, public Inpu
 private:
 
     static Vector2 sPlayerSpawnLocation;
+    static uint32_t sPlatformsPerChunk;
 
     std::vector<ChaosJumpPlayer*> mChaosJumpPlayers;
     std::map<HSteamNetConnection, std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>> mPlayerMap;
     std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter> mChunkGenerator = nullptr;
-
+    
     float mChunkHeight = 0.f;
 
     std::vector<std::unique_ptr<Platform>> mPlatforms = {};
@@ -34,7 +35,6 @@ private:
 
     float mGameTime = 0.f;
 
-    float mReachedHeight = 0.f;
     float mEndPhaseSeconds = -1.f;
 
     struct //Replicated Properties
@@ -49,6 +49,8 @@ private:
     };
 
 protected:
+
+    void setSeed(uint32_t inSeed);
 
     void clearDroppedPlatforms(float currentHeight);
     void clearObstaclesOutOfRange(float currentHeight);
@@ -69,7 +71,7 @@ public:
     //~ End GameMode Interface
     
     virtual void startGame();
-    virtual void restart();
+    virtual void reset();
     virtual void gameOver();
 
     static void hostSession();

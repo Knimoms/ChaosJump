@@ -95,6 +95,12 @@ void ChaosJumpPlayer::handleKeyReleased(const SDL_Scancode scancode)
     }
 }
 
+void ChaosJumpPlayer::reset()
+{
+    mReachedHeight = 0.f;
+    setIsDead(false);
+}
+
 void ChaosJumpPlayer::tick(const float deltaTime)
 {
     const float currentPlayerHeight = -getLocation().y - ChaosJumpGameMode::getPlayerSpawnLocation().y;
@@ -115,7 +121,7 @@ void ChaosJumpPlayer::tick(const float deltaTime)
     InputReceiverInterface::tick(deltaTime);
 }
 
-std::string ChaosJumpPlayer::serialize() const
+std::string ChaosJumpPlayer::serialize() const  
 {
     std::string serialized;
     serialized.resize(sizeof(mLocation) + sizeof(bDead));

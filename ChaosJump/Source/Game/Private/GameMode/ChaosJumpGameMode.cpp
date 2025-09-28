@@ -14,11 +14,29 @@
 DEFINE_DEFAULT_DELETER(ChunkGenerator)
 
 Vector2 ChaosJumpGameMode::sPlayerSpawnLocation = {.x = 0, .y = 200};
+uint32_t ChaosJumpGameMode::sPlatformsPerChunk = 8;
 
 void ChaosJumpPlayerDeleter::operator()(ChaosJumpPlayer* player) const
 {
     player->callOnDestroy();
     delete player;
+}
+
+void ChaosJumpGameMode::setSeed(const uint32_t inSeed)
+{
+    mSeed = inSeed;
+
+    mPlatforms.clear();
+    mObstacles.clear();
+
+    std::unique_ptr<Platform> platform = std::make_unique<Platform>();
+    platform->setLocation(sPlayerSpawnLocation + Vector2{.x = 0, .y = 300});
+    mPlatforms.push_back(std::move(platform));
+
+    const Vector2& windowSize = Application::getApplication().getWindowSize();
+    mChunkGenerator = std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter>(new ChunkGenerator(windowSize, sPlatformsPerChunk, mSeed));
+
+    mChunkGenerator->generateChunk(0, mPlatforms, mObstacles);
 }
 
 void ChaosJumpGameMode::clearDroppedPlatforms(const float currentHeight)
@@ -192,7 +210,6 @@ void ChaosJumpGameMode::handleConnectionJoined(const HSteamNetConnection connect
     if (getJoinedConnections().size() >= 2)
     {
         bWantsToStartGame = true;
-        mSeed = std::random_device()();
     }
 }
 
@@ -211,40 +228,45 @@ void ChaosJumpGameMode::removePlayer(Player* player)
 
 void ChaosJumpGameMode::startGame()
 {
-    mPlatforms.clear();
-    mObstacles.clear();
-    
     bGameInProgress = true;
     bGameOver = false;
-    mReachedHeight = 0.f;
-    
-    constexpr Vector2 size {.x = 1, .y = 1};
 
     if (isLocallyOwned())
     {
         for (HSteamNetConnection connection : getJoinedConnections())
         {
+            constexpr Vector2 size {.x = 1, .y = 1};
             mPlayerMap[connection] = std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>(new ChaosJumpPlayer(size, sPlayerSpawnLocation));
             mPlayerMap[connection]->registerObject();
             mPlayerMap[connection]->transferOwnershipToConnection(connection);
         }
     }
 
-    std::unique_ptr<Platform> platform = std::make_unique<Platform>();
-    platform->setLocation(sPlayerSpawnLocation + Vector2{.x = 0, .y = 300});
-    mPlatforms.push_back(std::move(platform));
-
     Application& app = Application::getApplication();
     const Vector2& windowSize = app.getWindowSize();
-    mChunkGenerator = std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter>(new ChunkGenerator(windowSize, 8, mSeed));
-
-    mChunkGenerator->generateChunk(0, mPlatforms, mObstacles);
     
     mChunkHeight = windowSize.y;
 }
 
-void ChaosJumpGameMode::restart()
+void ChaosJumpGameMode::reset()
 {
+    if (isLocallyOwned())
+    {
+        setSeed(std::random_device()());
+        for (const auto& [connection, player] : mPlayerMap)
+        {
+            player->setLocation(sPlayerSpawnLocation);
+            
+            const NetPacket replicatePacket(this);
+            constexpr bool bReliable = true;
+            NetHandler::sendPacketToConnection(replicatePacket, connection, bReliable);
+        }
+    }
+
+    for (ChaosJumpPlayer* player : mChaosJumpPlayers)
+    {
+        player->reset();
+    }
 }
 
 void ChaosJumpGameMode::gameOver()
@@ -266,8 +288,6 @@ void ChaosJumpGameMode::tick(const float deltaTime)
     }
     
     mGameTime += deltaTime;
-
-    Application& app = Application::getApplication();
 
     if (!bGameInProgress)
     {
@@ -302,7 +322,7 @@ void ChaosJumpGameMode::tick(const float deltaTime)
 
         if (mEndPhaseSeconds < 0.f)
         {
-            gameOver();
+            reset();
         }
         
         break;
@@ -312,7 +332,7 @@ void ChaosJumpGameMode::tick(const float deltaTime)
 
     drawGameHUD(deltaTime);
     
-    const float viewHeight = app.getCurrentViewLocation().y;
+    const float viewHeight = Application::getApplication().getCurrentViewLocation().y;
     clearDroppedPlatforms(viewHeight);
     clearObstaclesOutOfRange(viewHeight);
 
@@ -394,7 +414,15 @@ void ChaosJumpGameMode::deserialize(std::string serialized)
     sourceAddress += sizeof(bool);
     memcpy(&bQueueGameOver, sourceAddress, sizeof(bool));
     sourceAddress += sizeof(bool);
-    memcpy(&mSeed, sourceAddress, sizeof(uint32_t));
+
+    uint32_t newSeed;
+    memcpy(&newSeed, sourceAddress, sizeof(uint32_t));
+
+    if (newSeed != mSeed)
+    {
+        setSeed(newSeed);
+    }
+    
     sourceAddress += sizeof(uint32_t);
     memcpy(&mHostScore, sourceAddress, sizeof(uint32_t));
     sourceAddress += sizeof(uint32_t);
