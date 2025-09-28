@@ -241,10 +241,14 @@ CollisionResponse CollisionObject::getCollisionResponseForCategory(const Collisi
 void CollisionObject::insertOverlappingObject(CollisionObject* inCollisionObject)
 {
     mOverlappingObjects.insert(inCollisionObject);
-    mOverlapDestroyEventIds[inCollisionObject] = inCollisionObject->mOnDestroyed.subscribe([this](CollisionObject* collisionObject)
+
+    if (inCollisionObject)
     {
-        removeOverlappingObject(collisionObject);
-    });
+        mOverlapDestroyEventIds[inCollisionObject] = inCollisionObject->mOnDestroyed.subscribe([this](CollisionObject* collisionObject)
+        {
+            removeOverlappingObject(collisionObject);
+        });
+    }
 }
 
 void CollisionObject::removeOverlappingObject(CollisionObject* inCollisionObject)
