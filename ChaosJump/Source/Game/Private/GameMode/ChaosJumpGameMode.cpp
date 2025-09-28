@@ -254,7 +254,7 @@ void ChaosJumpGameMode::evaluateScoringPlayer()
         highestPlayer->isLocallyOwned() ? ++mHostScore : ++mClientScore;
     }
 
-    bWantsToStartGame = true;
+    bWantsToReset = true;
     const NetPacket replicatePacket(this);
 
     for (HSteamNetConnection connection : getJoinedConnections())
