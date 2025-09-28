@@ -291,6 +291,7 @@ void CollisionObject::handleCollision(const CollisionResult& collisionResult)
     else
     {
         insertOverlappingObject(collisionObject);
+        handleCollisionBegin(collisionObject, collisionNormal);
     }
     
 }

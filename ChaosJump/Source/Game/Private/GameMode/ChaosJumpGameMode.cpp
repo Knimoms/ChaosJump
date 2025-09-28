@@ -399,6 +399,9 @@ void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
         case SDL_SCANCODE_C:
             netHandler->closeSession();
             break;
+        case SDL_SCANCODE_L:
+            bWantsToStartGame = true;
+            break;
         default:
             ;
         }
@@ -412,7 +415,7 @@ void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
             break;                           
         case SDL_SCANCODE_F:                 
             NetHandler::openFriendslist();   
-            break;                           
+            break;
         default:                             
             ;                                
         }                                    
