@@ -162,7 +162,7 @@ void NetHandler::handleConnectionStatusChanged(SteamNetConnectionStatusChangedCa
         }
         else if (bConnectedAsClient)
         {
-            
+            Application::getApplication().getGameMode()->handleNetworkError();
             bConnectedAsClient = false;
         }
         break;
