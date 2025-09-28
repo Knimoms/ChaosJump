@@ -121,8 +121,6 @@ private:
     std::vector<DebugLine> mDebugLines = {};
     std::vector<DisplayText> mDisplayTexts = {};
 
-    bool bPaused = false;
-
 protected:
     
     Application() = default;

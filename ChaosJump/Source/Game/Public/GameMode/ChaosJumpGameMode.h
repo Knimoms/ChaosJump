@@ -35,6 +35,7 @@ private:
     float mGameTime = 0.f;
 
     float mReachedHeight = 0.f;
+    float mEndPhaseSeconds = -1.f;
 
     struct //Replicated Properties
     {
@@ -53,6 +54,7 @@ protected:
     void clearObstaclesOutOfRange(float currentHeight);
 
     void drawMenuDisplayText() const;
+    void drawGameHUD(float deltaTime);
 
 public:
 
@@ -67,6 +69,7 @@ public:
     //~ End GameMode Interface
     
     virtual void startGame();
+    virtual void restart();
     virtual void gameOver();
 
     static void hostSession();

@@ -99,6 +99,79 @@ void ChaosJumpGameMode::drawMenuDisplayText() const
     }
 }
 
+void ChaosJumpGameMode::drawGameHUD(float deltaTime)
+{
+    Application& app = Application::getApplication();
+    const DisplayText obstacleAliveCount
+    {
+        .screenPosition = {.x = -0.95f, .y = -0.95f},
+        .text = std::format("Obstacles alive: {}", mObstacles.size()),
+        .color = {.r = 1, .g = 1, .b = 1},
+        .textScale = {.x = 1.25, .y = 1.25},
+        .alignment = {.x = -1, .y = -1}
+    };
+
+    const DisplayText scoreText
+    {
+        .screenPosition = {.x = 0, .y = -0.95f},
+        .text = std::format("{} : {}", mHostScore, mClientScore),
+        .color = {.r = 1, .g = 1, .b = 1},
+        .textScale = {.x = 1.5, .y = 1.5},
+        .alignment = {.x = 0, .y = -1}
+    };
+
+    app.addDisplayText(obstacleAliveCount);
+    app.addDisplayText(scoreText);
+
+    const auto [hostHeight, clientHeight] = [&]()
+    {
+        std::pair<float, float> heights;
+
+        for (const ChaosJumpPlayer* player : mChaosJumpPlayers)
+        {
+            float* settingHeight;
+            if (player->wasRemotelyCreated())
+            {
+                settingHeight = player->isLocallyOwned() ? &heights.second : &heights.first;
+            }
+            else
+            {
+                settingHeight = player->isLocallyOwned() ? &heights.first : &heights.second;
+            }
+            
+            *settingHeight = player->getReachedHeight();
+        }
+
+        return heights;
+    }();
+    
+    const DisplayText heightText
+    {
+        .screenPosition = {.x = 0, .y = -1},
+        .text = std::format("{:.2f} : {:.2f}", hostHeight, clientHeight),
+        .color = {.r = 1, .g = 1, .b = 1},
+        .textScale = {.x = 2, .y = 2},
+        .alignment = {.x = 0, .y = -1}
+    };
+
+    app.addDisplayText(heightText);
+
+    if (mEndPhaseSeconds >= 0.f)
+    {
+        const uint64_t intEndSeconds = mEndPhaseSeconds;
+        const DisplayText endPhaseSecondsText
+        {
+            .screenPosition = {.x = 0, .y = 1},
+            .text = std::format("{:.2f}", mEndPhaseSeconds),
+            .color = intEndSeconds % 2 ? Color{1, 1, 1} : Color{0, 1, 0},
+            .textScale = {.x = 2, .y = 2},
+            .alignment = {.x = 0, .y = 1}
+        };
+
+        app.addDisplayText(endPhaseSecondsText);
+    }
+}
+
 ChaosJumpGameMode::ChaosJumpGameMode() = default;
 ChaosJumpGameMode::~ChaosJumpGameMode() = default;
 
@@ -170,6 +243,10 @@ void ChaosJumpGameMode::startGame()
     mChunkHeight = windowSize.y;
 }
 
+void ChaosJumpGameMode::restart()
+{
+}
+
 void ChaosJumpGameMode::gameOver()
 {
     bGameOver = true;
@@ -198,63 +275,46 @@ void ChaosJumpGameMode::tick(const float deltaTime)
         return;
     }
 
-    const DisplayText obstacleAliveCount
+    const uint8_t deadPlayerCount = [&]()
     {
-        .screenPosition = {.x = -0.95f, .y = -0.95f},
-        .text = std::format("Obstacles alive: {}", mObstacles.size()),
-        .color = {.r = 1, .g = 1, .b = 1},
-        .textScale = {.x = 1.25, .y = 1.25},
-        .alignment = {.x = -1, .y = -1}
-    };
-
-    const DisplayText scoreText
-    {
-        .screenPosition = {.x = 0, .y = -0.95f},
-        .text = std::format("{} : {}", mHostScore, mClientScore),
-        .color = {.r = 1, .g = 1, .b = 1},
-        .textScale = {.x = 1.5, .y = 1.5},
-        .alignment = {.x = 0, .y = -1}
-    };
-
-    app.addDisplayText(obstacleAliveCount);
-    app.addDisplayText(scoreText);
-
-    const auto [hostHeight, clientHeight] = [&]()
-    {
-        std::pair<float, float> heights;
-
-        for (ChaosJumpPlayer* player : mChaosJumpPlayers)
+        uint8_t count = 0;
+        for (const ChaosJumpPlayer* player : mChaosJumpPlayers)
         {
-            float* settingHeight;
-            if (player->wasRemotelyCreated())
-            {
-                settingHeight = player->isLocallyOwned() ? &heights.second : &heights.first;
-            }
-            else
-            {
-                settingHeight = player->isLocallyOwned() ? &heights.first : &heights.second;
-            }
-            
-            *settingHeight = player->getReachedHeight();
+            count += player->isDead();
         }
 
-        return heights;
+        return count;
     }();
+
+    switch (deadPlayerCount)
+    {
+    case 0:
+        break;
+    case 1:
+        if (mEndPhaseSeconds < 0.f)
+        {
+            mEndPhaseSeconds = 10.f;
+        }
+        else
+        {
+            mEndPhaseSeconds -= deltaTime;
+        }
+
+        if (mEndPhaseSeconds < 0.f)
+        {
+            gameOver();
+        }
+        
+        break;
+    default:
+        mEndPhaseSeconds = -1.f;
+    }
+
+    drawGameHUD(deltaTime);
     
     const float viewHeight = app.getCurrentViewLocation().y;
     clearDroppedPlatforms(viewHeight);
     clearObstaclesOutOfRange(viewHeight);
-
-    const DisplayText heightText
-    {
-        .screenPosition = {.x = 0, .y = -1},
-        .text = std::format("{:.2f} : {:.2f}", hostHeight, clientHeight),
-        .color = {.r = 1, .g = 1, .b = 1},
-        .textScale = {.x = 2, .y = 2},
-        .alignment = {.x = 0, .y = -1}
-    };
-
-    app.addDisplayText(heightText);
 
     const int currentChunkHeightCoord = std::abs(static_cast<int>(viewHeight) / mChunkHeight);
 
