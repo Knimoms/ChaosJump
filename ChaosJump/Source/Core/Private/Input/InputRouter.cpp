@@ -35,6 +35,8 @@ void InputRouter::addInputReceiver(InputReceiverInterface* inputReceiver)
 
 void InputRouter::removeInputReceiver(InputReceiverInterface* inputReceiver)
 {
+    std::erase(mAddedInputReceivers, inputReceiver);
+    
     for (InputReceiverInterface*& receiver : mInputReceivers)
     {
         if (inputReceiver == receiver)
