@@ -231,8 +231,8 @@ SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId, uint32_t n
     remoteObject->mNetGUID = netGUID;
     remoteObject->bRemotelyCreated = true;
     remoteObject->registerObject();
-    SerializableInterface* object = remoteObject.get();
-    mRemotelyCreatedObjects.emplace_back(remoteObject.release());
+    SerializableInterface* object = remoteObject.release();
+    mRemotelyCreatedObjects.emplace_back(object);
     return object;
 }
 
@@ -350,7 +350,7 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet, const HSteamNetC
 {
     if (packet.header.type == OBJECTDESTROY)
     {
-        std::erase_if(mRemotelyCreatedObjects, [&](std::unique_ptr<SerializableInterface>& obj)
+        std::erase_if(mRemotelyCreatedObjects, [&](std::unique_ptr<SerializableInterface, RemoteObjectDeleter>& obj)
         {
             return obj->mNetGUID == packet.header.netGUID;
         });
