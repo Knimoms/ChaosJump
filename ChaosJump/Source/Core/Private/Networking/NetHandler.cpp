@@ -163,7 +163,6 @@ void NetHandler::handleConnectionStatusChanged(SteamNetConnectionStatusChangedCa
         else if (bConnectedAsClient)
         {
             Application::getApplication().getGameMode()->handleNetworkError();
-            bConnectedAsClient = false;
         }
         break;
     case k_ESteamNetworkingConnectionState_Connected:
@@ -265,6 +264,7 @@ void NetHandler::closeSession()
     }
     
     mClientConnections.clear();
+    mRemotelyCreatedObjects.clear();
 
     SteamFriends()->ClearRichPresence();
 
@@ -275,6 +275,7 @@ void NetHandler::closeServerConnection()
 {
     SteamNetworkingSockets()->CloseConnection(mServerConnection, 0, "Client leaving.", true);
     bConnectedAsClient = false;
+    mRemotelyCreatedObjects.clear();
 }
 
 void NetHandler::openInviteDialogue() const
