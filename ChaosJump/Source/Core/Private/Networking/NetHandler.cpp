@@ -123,6 +123,12 @@ NetHandler::~NetHandler()
     }
 }
 
+void RemoteObjectDeleter::operator()(SerializableInterface* serializableObject) const
+{
+    serializableObject->handleRemoteObjectAboutToBeDestroyed();
+    delete serializableObject;
+}
+
 void NetHandler::handleConnectionStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
 {
     auto* sockets = SteamNetworkingSockets();
@@ -226,7 +232,7 @@ SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId, uint32_t n
     remoteObject->bRemotelyCreated = true;
     remoteObject->registerObject();
     SerializableInterface* object = remoteObject.get();
-    mRemotelyCreatedObjects.push_back(std::move(remoteObject));
+    mRemotelyCreatedObjects.emplace_back(remoteObject.release());
     return object;
 }
 

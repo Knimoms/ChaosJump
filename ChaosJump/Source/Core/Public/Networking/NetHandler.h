@@ -9,6 +9,11 @@
 #include "Networking/SerializableInterface.h"
 #include "SteamSDK/public/steam/steam_api.h"
 
+struct RemoteObjectDeleter
+{
+    void operator()(SerializableInterface* serializableObject) const;
+};
+
 class NetHandler
 {
 
@@ -18,7 +23,7 @@ private:
 
     std::unordered_set<uint32_t> mUsedNetGUIDs;
 
-    mutable std::vector<std::unique_ptr<SerializableInterface>> mRemotelyCreatedObjects;
+    mutable std::vector<std::unique_ptr<SerializableInterface, RemoteObjectDeleter>> mRemotelyCreatedObjects;
     std::vector<SerializableInterface*> mNetworkObjects;
 
     const int mVirtualPort = 1;

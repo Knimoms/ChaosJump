@@ -27,3 +27,8 @@ void Player::setOwningConnection(const HSteamNetConnection inOwningConnection)
         inputRouter->removeInputReceiver(this);    
     }
 }
+
+void Player::handleRemoteObjectAboutToBeDestroyed()
+{
+    Application::getApplication().getInputRouter()->removeInputReceiver(this);
+}

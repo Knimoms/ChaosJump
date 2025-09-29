@@ -28,6 +28,10 @@ void SerializableInterface::setOwningConnection(HSteamNetConnection inOwningConn
     mOwningConnection = inOwningConnection;
 }
 
+void SerializableInterface::handleRemoteObjectAboutToBeDestroyed()
+{
+}
+
 void SerializableInterface::registerObject()
 {
     Application::getApplication().getNetHandler()->addNetworkObject(this);
