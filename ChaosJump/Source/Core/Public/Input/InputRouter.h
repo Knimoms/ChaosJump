@@ -11,10 +11,12 @@ class InputRouter
 private:
 
     std::vector<InputReceiverInterface*> mInputReceivers;
+    std::vector<InputReceiverInterface*> mAddedInputReceivers;
+    std::vector<InputReceiverInterface*> mRemovedInputReceivers;
     
 public:
 
-    void routeKeyEvent(SDL_Scancode scancode, bool pressed) const;
+    void routeKeyEvent(SDL_Scancode scancode, bool pressed);
 
     void addInputReceiver(InputReceiverInterface* inputReceiver);
     void removeInputReceiver(InputReceiverInterface* inputReceiver);

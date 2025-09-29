@@ -3,24 +3,38 @@
 #include "Application.h"
 #include "Input/InputReceiverInterface.h"
 
-void InputRouter::routeKeyEvent(const SDL_Scancode scancode, const bool pressed) const
+void InputRouter::routeKeyEvent(const SDL_Scancode scancode, const bool pressed)
 {
-    auto inputReceiversCopy = mInputReceivers;
-    for (InputReceiverInterface* inputReceiver : inputReceiversCopy)
+    for (InputReceiverInterface* inputReceiver : mAddedInputReceivers)
     {
-        inputReceiver->handleKeyInput(scancode, pressed);
+        mInputReceivers.push_back(inputReceiver);
+    }
+
+    for (InputReceiverInterface* inputReceiver : mRemovedInputReceivers)
+    {
+        std::erase(mInputReceivers, inputReceiver);
+    }
+    
+    for (InputReceiverInterface* inputReceiver : mInputReceivers)
+    {
+        if (inputReceiver)
+        {
+            inputReceiver->handleKeyInput(scancode, pressed);
+        }
     }
 }
 
 void InputRouter::addInputReceiver(InputReceiverInterface* inputReceiver)
 {
-    mInputReceivers.push_back(inputReceiver);
+    mAddedInputReceivers.push_back(inputReceiver);
 }
 
 void InputRouter::removeInputReceiver(InputReceiverInterface* inputReceiver)
 {
-    std::erase_if(mInputReceivers, [&](InputReceiverInterface* receiver)
-    {
-        return receiver == inputReceiver;
-    });
+    auto it = std::ranges::find(mInputReceivers, inputReceiver);
+
+    if (it != mInputReceivers.end()) return;
+
+    *it = nullptr;
+    mRemovedInputReceivers.push_back(inputReceiver);
 }
