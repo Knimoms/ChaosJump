@@ -111,9 +111,7 @@ bool NetHandler::initializeSteam()
     return true;
 }
 
-NetHandler::NetHandler() : mListenSocket(0), mPollGroup(0), mServerConnection(0),
-                           m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested),
-                           m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
+NetHandler::NetHandler() : mListenSocket(0), mPollGroup(0), mServerConnection(0), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
 {
 }
 
