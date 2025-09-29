@@ -329,6 +329,11 @@ void ChaosJumpGameMode::endGame()
     app.getInputRouter()->removeInputReceiver(this);
     gameMode->registerObject();
 
+    for (Player* player : getPlayers())
+    {
+        app.getInputRouter()->removeInputReceiver(player);
+    }
+
     app.setGameMode(std::move(gameMode));
 }
 
