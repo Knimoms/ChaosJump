@@ -44,3 +44,6 @@ Lobby Actions:
 
 When the host leaves, also the client gets kicked into the Main Menu again.
 When a client leaves, host can continue playing alone, can leave by pressing ESC.
+
+Replication happens in 250hz.
+Didn't implement RPCs, the game's networking is based on three different Packet Types: Object Destruction, Object Replication, and Object Ownership Transfer.
