@@ -173,14 +173,13 @@ void NetHandler::handleConnectionStatusChanged(SteamNetConnectionStatusChangedCa
     }
 }
 
-void NetHandler::handleGameLobbyJoinRequested(GameLobbyJoinRequested_t* pParam)
-{
-    SteamMatchmaking()->JoinLobby(pParam->m_steamIDLobby);
-    bConnectedAsClient = true;
-}
-
 void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t* pParam)
 {
+    if (bHosting)
+    {
+        closeSession();
+    }
+    
     CSteamID host = pParam->m_steamIDFriend;
     SteamNetworkingIdentity id;
     id.SetSteamID(host);
