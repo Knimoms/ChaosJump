@@ -28,6 +28,7 @@ protected:
     uint32_t mNetGUID = 0;
 
     HSteamNetConnection mOwningConnection;
+    bool bRemotelyCreated = false;
 
     friend class NetHandler;
 
@@ -41,6 +42,8 @@ public:
     void transferOwnershipToConnection(HSteamNetConnection newOwningConnection);
     virtual void setOwningConnection(HSteamNetConnection inOwningConnection);
 
+    virtual void handleRemoteObjectAboutToBeDestroyed();
+
     virtual std::string serialize() const = 0;
     virtual void deserialize(std::string serialized) = 0;
     
@@ -51,6 +54,7 @@ public:
     
     HSteamNetConnection getOwningConnection() const { return mOwningConnection; }
     bool isLocallyOwned() const { return !mOwningConnection; }
-
+    bool wasRemotelyCreated() const { return bRemotelyCreated; }
+    
     void callOnDestroy();
 };

@@ -1,6 +1,7 @@
 #include "Player/ChaosJumpPlayer.h"
 #include "Application.h"
 #include "Debugging/DebugDefinitions.h"
+#include "GameMode/ChaosJumpGameMode.h"
 #include "Networking/NetHandler.h"
 #include "Render/Camera.h"
 
@@ -10,9 +11,7 @@ void ChaosJumpPlayer::handleCollisionHit(CollisionObject* collisionObject, const
 {
     if (!collisionObject && collisionNormal == Vector2{.x = 0, .y = -1}) //means we have hit the windowBorder
     {
-        bDead = true;
-        setCanMove(false);
-        setColor({.r = 1, .g = 0, .b = 0});
+        setIsDead(true);
         return;
     }
 
@@ -24,6 +23,13 @@ void ChaosJumpPlayer::handleCollisionHit(CollisionObject* collisionObject, const
         mVelocity.y = std::min(-mMinJumpVelocity, mVelocity.y);
     }
 
+}
+
+void ChaosJumpPlayer::setIsDead(const bool bInDead)
+{
+    bDead = bInDead;
+    setColor(bDead ? Color{.r = 1, .g = 0, .b = 0} : Color{.r = 0, .g = 1, .b = 0});
+    setCanMove(!bInDead);
 }
 
 Vector2 ChaosJumpPlayer::getViewLocation() const
@@ -89,8 +95,25 @@ void ChaosJumpPlayer::handleKeyReleased(const SDL_Scancode scancode)
     }
 }
 
+void ChaosJumpPlayer::reset()
+{
+    mReachedHeight = 0.f;
+    setIsDead(false);
+    
+    if (isLocallyOwned())
+    {
+        setLocation(ChaosJumpGameMode::getPlayerSpawnLocation());
+        mCamera->setCameraHeight(0);
+    }
+    
+    resetOverlappingObjects();
+}
+
 void ChaosJumpPlayer::tick(const float deltaTime)
 {
+    const float currentPlayerHeight = -getLocation().y - ChaosJumpGameMode::getPlayerSpawnLocation().y;
+    mReachedHeight = std::max(mReachedHeight, currentPlayerHeight/100);
+
     if (!isLocallyOwned()) return;
     if (bDead) return;
     
@@ -106,26 +129,35 @@ void ChaosJumpPlayer::tick(const float deltaTime)
     InputReceiverInterface::tick(deltaTime);
 }
 
-std::string ChaosJumpPlayer::serialize() const
+std::string ChaosJumpPlayer::serialize() const  
 {
     std::string serialized;
-    serialized.resize(sizeof(mLocation));
+    serialized.resize(sizeof(mLocation) + sizeof(bDead));
 
     memcpy(serialized.data(), &mLocation, sizeof(mLocation));
+    memcpy(serialized.data() + sizeof(mLocation), &bDead, sizeof(bDead));
 
     return serialized;
 }
 
 void ChaosJumpPlayer::deserialize(std::string serialized)
 {
-    if (!ensure(serialized.size() >= sizeof(Vector2))) return;
+    if (!ensure(serialized.size() >= sizeof(Vector2) + sizeof(bool))) return;
 
     memcpy(&mLocation, serialized.data(), sizeof(Vector2));
+
+    bool bNewDead;
+    memcpy(&bNewDead, serialized.data() + sizeof(Vector2), sizeof(bool));
+
+    if (bDead != bNewDead)
+    {
+        setIsDead(bNewDead);
+    }
 }
 
 void ChaosJumpPlayer::setOwningConnection(HSteamNetConnection inOwningConnection)
 {
-    Player::setOwningConnection(inOwningConnection);
+    Player::setOwningConnection(inOwningConnection);    
 
     if (isLocallyOwned())
     {

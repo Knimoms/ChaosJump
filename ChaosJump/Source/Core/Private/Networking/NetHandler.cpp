@@ -111,9 +111,7 @@ bool NetHandler::initializeSteam()
     return true;
 }
 
-NetHandler::NetHandler() : mListenSocket(0), mPollGroup(0), mServerConnection(0),
-                           m_GameLobbyJoinRequested(this, &NetHandler::handleGameLobbyJoinRequested),
-                           m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
+NetHandler::NetHandler() : mListenSocket(0), mPollGroup(0), mServerConnection(0), m_GameRichPresenceJoinRequested(this, &NetHandler::handleGameRichPresenceJoinRequested)
 {
 }
 
@@ -123,6 +121,12 @@ NetHandler::~NetHandler()
     {
         object->mOnDestroyDelegate = nullptr;
     }
+}
+
+void RemoteObjectDeleter::operator()(SerializableInterface* serializableObject) const
+{
+    serializableObject->handleRemoteObjectAboutToBeDestroyed();
+    delete serializableObject;
 }
 
 void NetHandler::handleConnectionStatusChanged(SteamNetConnectionStatusChangedCallback_t* pParam)
@@ -160,6 +164,10 @@ void NetHandler::handleConnectionStatusChanged(SteamNetConnectionStatusChangedCa
             Application::getApplication().getGameMode()->handleConnectionLeft(pParam->m_hConn);
             printf("Client disconnected or problem.\n");
         }
+        else if (bConnectedAsClient)
+        {
+            Application::getApplication().getGameMode()->handleNetworkError();
+        }
         break;
     case k_ESteamNetworkingConnectionState_Connected:
         mClientConnections.push_back(pParam->m_hConn);
@@ -169,14 +177,13 @@ void NetHandler::handleConnectionStatusChanged(SteamNetConnectionStatusChangedCa
     }
 }
 
-void NetHandler::handleGameLobbyJoinRequested(GameLobbyJoinRequested_t* pParam)
-{
-    SteamMatchmaking()->JoinLobby(pParam->m_steamIDLobby);
-    bConnectedAsClient = true;
-}
-
 void NetHandler::handleGameRichPresenceJoinRequested(GameRichPresenceJoinRequested_t* pParam)
 {
+    if (bHosting)
+    {
+        closeSession();
+    }
+    
     CSteamID host = pParam->m_steamIDFriend;
     SteamNetworkingIdentity id;
     id.SetSteamID(host);
@@ -222,9 +229,10 @@ SerializableInterface* NetHandler::createRemoteObject(uint8_t typeId, uint32_t n
 {
     std::unique_ptr remoteObject = NetFactory::getInstance().create(typeId);
     remoteObject->mNetGUID = netGUID;
+    remoteObject->bRemotelyCreated = true;
     remoteObject->registerObject();
-    SerializableInterface* object = remoteObject.get();
-    mRemoteObjects.push_back(std::move(remoteObject));
+    SerializableInterface* object = remoteObject.release();
+    mRemotelyCreatedObjects.emplace_back(object);
     return object;
 }
 
@@ -259,10 +267,18 @@ void NetHandler::closeSession()
     }
     
     mClientConnections.clear();
+    mRemotelyCreatedObjects.clear();
 
     SteamFriends()->ClearRichPresence();
 
     bHosting = false;
+}
+
+void NetHandler::closeServerConnection()
+{
+    SteamNetworkingSockets()->CloseConnection(mServerConnection, 0, "Client leaving.", true);
+    bConnectedAsClient = false;
+    mRemotelyCreatedObjects.clear();
 }
 
 void NetHandler::openInviteDialogue() const
@@ -334,7 +350,7 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet, const HSteamNetC
 {
     if (packet.header.type == OBJECTDESTROY)
     {
-        std::erase_if(mRemoteObjects, [&](std::unique_ptr<SerializableInterface>& obj)
+        std::erase_if(mRemotelyCreatedObjects, [&](std::unique_ptr<SerializableInterface, RemoteObjectDeleter>& obj)
         {
             return obj->mNetGUID == packet.header.netGUID;
         });
@@ -350,7 +366,7 @@ void NetHandler::handleObjectNetPacket(const NetPacket& packet, const HSteamNetC
 
         if (it == mNetworkObjects.end())
         {
-            SerializableInterface* remoteObject = createRemoteObject(packet.header.type, packet.header.netGUID);
+            SerializableInterface* remoteObject = createRemoteObject(packet.header.objectType, packet.header.netGUID);
             remoteObject->setOwningConnection(sendingConnection);
 
             return remoteObject;

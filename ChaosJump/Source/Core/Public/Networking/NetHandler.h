@@ -9,6 +9,11 @@
 #include "Networking/SerializableInterface.h"
 #include "SteamSDK/public/steam/steam_api.h"
 
+struct RemoteObjectDeleter
+{
+    void operator()(SerializableInterface* serializableObject) const;
+};
+
 class NetHandler
 {
 
@@ -18,7 +23,7 @@ private:
 
     std::unordered_set<uint32_t> mUsedNetGUIDs;
 
-    mutable std::vector<std::unique_ptr<SerializableInterface>> mRemoteObjects;
+    mutable std::vector<std::unique_ptr<SerializableInterface, RemoteObjectDeleter>> mRemotelyCreatedObjects;
     std::vector<SerializableInterface*> mNetworkObjects;
 
     const int mVirtualPort = 1;
@@ -39,7 +44,6 @@ private:
 protected:
 
     STEAM_CALLBACK_MANUAL(NetHandler, handleConnectionStatusChanged, SteamNetConnectionStatusChangedCallback_t, mCallbackConnStatusChanged);
-    STEAM_CALLBACK(NetHandler, handleGameLobbyJoinRequested, GameLobbyJoinRequested_t, m_GameLobbyJoinRequested);
     STEAM_CALLBACK(NetHandler, handleGameRichPresenceJoinRequested, GameRichPresenceJoinRequested_t, m_GameRichPresenceJoinRequested);
 
     void replicateObject(const SerializableInterface* object) const;
@@ -60,6 +64,8 @@ public:
     
     void hostSession();
     void closeSession();
+    void closeServerConnection();
+    
     void openInviteDialogue() const;
     static void openFriendslist();
     

@@ -13,34 +13,54 @@
 
 DEFINE_DEFAULT_DELETER(ChunkGenerator)
 
+Vector2 ChaosJumpGameMode::sPlayerSpawnLocation = {.x = 0, .y = 200};
+uint32_t ChaosJumpGameMode::sPlatformsPerChunk = 8;
+
 void ChaosJumpPlayerDeleter::operator()(ChaosJumpPlayer* player) const
 {
     player->callOnDestroy();
     delete player;
 }
 
-void ChaosJumpGameMode::clearDroppedPlatforms()
+void ChaosJumpGameMode::setSeed(const uint32_t inSeed)
+{
+    mSeed = inSeed;
+
+    mPlatforms.clear();
+    mObstacles.clear();
+
+    std::unique_ptr<Platform> platform = std::make_unique<Platform>();
+    platform->setLocation(sPlayerSpawnLocation + Vector2{.x = 0, .y = 300});
+    mPlatforms.push_back(std::move(platform));
+
+    const Vector2& windowSize = Application::getApplication().getWindowSize();
+    mChunkGenerator = std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter>(new ChunkGenerator(windowSize, sPlatformsPerChunk, mSeed));
+
+    mChunkGenerator->generateChunk(0, mPlatforms, mObstacles);
+}
+
+void ChaosJumpGameMode::clearDroppedPlatforms(const float currentHeight)
 {
     std::vector<int> droppedPlatformIndices = {};
     const size_t platformCount = mPlatforms.size(); 
     for (size_t i = platformCount - 1; i < std::numeric_limits<size_t>::max(); --i)
     {
         auto& platform = mPlatforms[i];
-        if (platform->getLocation().y > mLocalChaosJumpPlayer->getLocation().y + mChunkHeight)
+        if (platform->getLocation().y > currentHeight + mChunkHeight)
         {
             mPlatforms.erase(mPlatforms.begin() + i);
         }
     }
 }
 
-void ChaosJumpGameMode::clearObstaclesOutOfRange()
+void ChaosJumpGameMode::clearObstaclesOutOfRange(const float currentHeight)
 {
     std::vector<int> outOfRangeObstaclesIndices = {};
     const size_t obstacleCount = mObstacles.size(); 
     for (size_t i = obstacleCount - 1; i < std::numeric_limits<size_t>::max(); --i)
     {
         auto& obstacle = mObstacles[i];
-        if (obstacle->getLocation().y > mLocalChaosJumpPlayer->getLocation().y + 3 * mChunkHeight)
+        if (obstacle->getLocation().y > currentHeight + 3 * mChunkHeight)
         {
             mObstacles.erase(mObstacles.begin() + i);
         }
@@ -79,7 +99,7 @@ void ChaosJumpGameMode::drawMenuDisplayText() const
         const DisplayText titleDisplayText
         {
             .screenPosition = {.x = 0, .y = -0.25},
-            .text = bGameOver ? "Game Over": "Chaos Jump",
+            .text = "Chaos Jump",
             .color = {.r = 1, .g = 0, .b = 0},
             .textScale = {.x = 4, .y = 4}
         };
@@ -94,6 +114,79 @@ void ChaosJumpGameMode::drawMenuDisplayText() const
         
         app.addDisplayText(titleDisplayText);
         app.addDisplayText(infoDisplayText);
+    }
+}
+
+void ChaosJumpGameMode::drawGameHUD(float deltaTime)
+{
+    Application& app = Application::getApplication();
+    const DisplayText obstacleAliveCount
+    {
+        .screenPosition = {.x = -0.95f, .y = -0.95f},
+        .text = std::format("Obstacles alive: {}", mObstacles.size()),
+        .color = {.r = 1, .g = 1, .b = 1},
+        .textScale = {.x = 1.25, .y = 1.25},
+        .alignment = {.x = -1, .y = -1}
+    };
+
+    const DisplayText scoreText
+    {
+        .screenPosition = {.x = 0, .y = -0.95f},
+        .text = std::format("{} : {}", mHostScore, mClientScore),
+        .color = {.r = 1, .g = 1, .b = 1},
+        .textScale = {.x = 1.5, .y = 1.5},
+        .alignment = {.x = 0, .y = -1}
+    };
+
+    app.addDisplayText(obstacleAliveCount);
+    app.addDisplayText(scoreText);
+
+    const auto [hostHeight, clientHeight] = [&]()
+    {
+        std::pair<float, float> heights;
+
+        for (const ChaosJumpPlayer* player : mChaosJumpPlayers)
+        {
+            float* settingHeight;
+            if (player->wasRemotelyCreated())
+            {
+                settingHeight = player->isLocallyOwned() ? &heights.second : &heights.first;
+            }
+            else
+            {
+                settingHeight = player->isLocallyOwned() ? &heights.first : &heights.second;
+            }
+            
+            *settingHeight = player->getReachedHeight();
+        }
+
+        return heights;
+    }();
+    
+    const DisplayText heightText
+    {
+        .screenPosition = {.x = 0, .y = -1},
+        .text = std::format("{:.2f} : {:.2f}", hostHeight, clientHeight),
+        .color = {.r = 1, .g = 1, .b = 1},
+        .textScale = {.x = 2, .y = 2},
+        .alignment = {.x = 0, .y = -1}
+    };
+
+    app.addDisplayText(heightText);
+
+    if (mEndPhaseSeconds >= 0.f)
+    {
+        const uint64_t intEndSeconds = mEndPhaseSeconds;
+        const DisplayText endPhaseSecondsText
+        {
+            .screenPosition = {.x = 0, .y = 1},
+            .text = std::format("{:.2f}", mEndPhaseSeconds),
+            .color = intEndSeconds % 2 ? Color{1, 1, 1} : Color{0, 1, 0},
+            .textScale = {.x = 2, .y = 2},
+            .alignment = {.x = 0, .y = 1}
+        };
+
+        app.addDisplayText(endPhaseSecondsText);
     }
 }
 
@@ -117,55 +210,131 @@ void ChaosJumpGameMode::handleConnectionJoined(const HSteamNetConnection connect
     if (getJoinedConnections().size() >= 2)
     {
         bWantsToStartGame = true;
-        mSeed = std::random_device()();
     }
 }
 
-void ChaosJumpGameMode::setLocalPlayer(Player* inLocalPlayer)
+void ChaosJumpGameMode::handleNetworkError()
 {
-    GameMode::setLocalPlayer(inLocalPlayer);
+    GameMode::handleNetworkError();
 
-    mLocalChaosJumpPlayer = dynamic_cast<ChaosJumpPlayer*>(inLocalPlayer);
+    endGame();
+}
+
+void ChaosJumpGameMode::addPlayer(Player* player)
+{
+    GameMode::addPlayer(player);
+    mChaosJumpPlayers.push_back(static_cast<ChaosJumpPlayer*>(player));
+
+}
+
+void ChaosJumpGameMode::removePlayer(Player* player)
+{
+    GameMode::removePlayer(player);
+    std::erase(mChaosJumpPlayers, static_cast<ChaosJumpPlayer*>(player));
+}
+
+void ChaosJumpGameMode::evaluateScoringPlayer()
+{
+    if (!ensure(isLocallyOwned())) return;
+    
+    ChaosJumpPlayer* highestPlayer = nullptr;
+    float highestReachedHeight = 0.f;
+    for (ChaosJumpPlayer* player : mChaosJumpPlayers)
+    {
+        const float currentReachedHeight = player->getReachedHeight();
+        
+        if (!highestPlayer || currentReachedHeight > highestReachedHeight)
+        {
+            highestPlayer = player;
+            highestReachedHeight = player->getReachedHeight();
+        }
+    }
+
+    if (highestReachedHeight > 0.f)
+    {
+        highestPlayer->isLocallyOwned() ? ++mHostScore : ++mClientScore;
+    }
+
+    bWantsToReset = true;
+    const NetPacket replicatePacket(this);
+
+    for (HSteamNetConnection connection : getJoinedConnections())
+    {
+        if (connection)
+        {
+            constexpr bool bReliable = true;
+            NetHandler::sendPacketToConnection(replicatePacket, connection, bReliable);
+        }
+    }
+
+    bWantsToReset = false;
+    
+    reset();
 }
 
 void ChaosJumpGameMode::startGame()
 {
-    mPlatforms.clear();
-    mObstacles.clear();
-    
     bGameInProgress = true;
-    bGameOver = false;
-    mReachedHeight = 0.f;
-    
-    constexpr Vector2 size {.x = 1, .y = 1};
 
     if (isLocallyOwned())
     {
         for (HSteamNetConnection connection : getJoinedConnections())
         {
-            mPlayers[connection] = std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>(new ChaosJumpPlayer(size, mPlayerSpawnLocation));
-            mPlayers[connection]->registerObject();
-            mPlayers[connection]->transferOwnershipToConnection(connection);
+            constexpr Vector2 size {.x = 1, .y = 1};
+            mPlayerMap[connection] = std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>(new ChaosJumpPlayer(size, sPlayerSpawnLocation));
+            mPlayerMap[connection]->registerObject();
+            mPlayerMap[connection]->transferOwnershipToConnection(connection);
         }
     }
 
-    std::unique_ptr<Platform> platform = std::make_unique<Platform>();
-    platform->setLocation(mPlayerSpawnLocation + Vector2{.x = 0, .y = 300});
-    mPlatforms.push_back(std::move(platform));
-
     Application& app = Application::getApplication();
     const Vector2& windowSize = app.getWindowSize();
-    mChunkGenerator = std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter>(new ChunkGenerator(windowSize, 8, mSeed));
-
-    mChunkGenerator->generateChunk(0, mPlatforms, mObstacles);
     
     mChunkHeight = windowSize.y;
+
+    reset();
 }
 
-void ChaosJumpGameMode::gameOver()
+void ChaosJumpGameMode::reset()
 {
-    bGameOver = true;
-    bGameInProgress = false;
+    mEndPhaseSeconds = -1.f;
+    
+    if (isLocallyOwned())
+    {
+        setSeed(std::random_device()());
+    }
+
+    for (ChaosJumpPlayer* player : mChaosJumpPlayers)
+    {
+        player->reset();
+    }
+}
+
+void ChaosJumpGameMode::endGame()
+{
+    Application& app = Application::getApplication();
+    NetHandler* netHandler = app.getNetHandler();
+
+    if (netHandler->isHosting())
+    {
+        netHandler->closeSession();
+    }
+    else if (netHandler->isConnectedAsClient())
+    {
+        netHandler->closeServerConnection();
+    }
+
+    std::unique_ptr gameMode = std::make_unique<ChaosJumpGameMode>();
+    app.getInputRouter()->addInputReceiver(gameMode.get());
+    app.getInputRouter()->removeInputReceiver(this);
+    gameMode->registerObject();
+
+    for (Player* player : getPlayers())
+    {
+        app.getInputRouter()->removeInputReceiver(player);
+    }
+
+    app.setGameMode(std::move(gameMode));
 }
 
 void ChaosJumpGameMode::hostSession()
@@ -182,52 +351,58 @@ void ChaosJumpGameMode::tick(const float deltaTime)
     
     mGameTime += deltaTime;
 
-    Application& app = Application::getApplication();
-
     if (!bGameInProgress)
     {
         drawMenuDisplayText();
         return;
     }
 
-    const DisplayText obstacleAliveCount
+    const uint8_t deadPlayerCount = [&]()
     {
-        .screenPosition = {.x = 0, .y = -0.95},
-        .text = std::format("Obstacles alive: {}", mObstacles.size()),
-        .color = {.r = 1, .g = 1, .b = 1},
-        .textScale = {.x = 1.5, .y = 1.5},
-        .alignment = {.x = 0, .y = -1}
-    };
+        uint8_t count = 0;
+        for (const ChaosJumpPlayer* player : mChaosJumpPlayers)
+        {
+            count += player->isDead();
+        }
 
-    app.addDisplayText(obstacleAliveCount);
-    
-    if (!mLocalChaosJumpPlayer) return;
+        return count;
+    }();
 
-    if (mLocalChaosJumpPlayer->isDead())
+    switch (deadPlayerCount)
     {
-        gameOver();
+    case 0:
+        break;
+    case 1:
+        if (mEndPhaseSeconds < 0.f)
+        {
+            mEndPhaseSeconds = 10.f;
+        }
+        else
+        {
+            mEndPhaseSeconds -= deltaTime;
+        }
+
+        if (mEndPhaseSeconds > 0.f) break;
+        
+    default:
+        if (isLocallyOwned())
+        {
+            evaluateScoringPlayer();
+        }
+
         return;
     }
 
-    clearDroppedPlatforms();
-    clearObstaclesOutOfRange();
-
-    const float currentPlayerHeight = -(mLocalChaosJumpPlayer->getLocation().y - mPlayerSpawnLocation.y);
-    mReachedHeight = std::max(mReachedHeight, currentPlayerHeight/100);
-
-    const DisplayText heightText
-    {
-        .screenPosition = {.x = 0, .y = -1},
-        .text = std::format("{:.2f}", mReachedHeight),
-        .color = {.r = 1, .g = 1, .b = 1},
-        .textScale = {.x = 2, .y = 2},
-        .alignment = {.x = 0, .y = -1}
-    };
-
-    app.addDisplayText(heightText);
+    drawGameHUD(deltaTime);
     
-    const int currentChunkHeightCoord = std::abs(static_cast<int>(currentPlayerHeight / mChunkHeight));
+    const float viewHeight = Application::getApplication().getCurrentViewLocation().y;
+    clearDroppedPlatforms(viewHeight);
+    clearObstaclesOutOfRange(viewHeight);
 
+    const int currentChunkHeightCoord = std::abs(static_cast<int>(viewHeight) / mChunkHeight);
+
+    if (!mChunkGenerator) return;
+    
     for (int i = mChunkGenerator->getChunkGenerationHeight() + 1; currentChunkHeightCoord + 3 > i; ++i)
     {
         mChunkGenerator->generateChunk(i, mPlatforms, mObstacles);
@@ -251,6 +426,9 @@ void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
         case SDL_SCANCODE_C:
             netHandler->closeSession();
             break;
+        case SDL_SCANCODE_L:
+            bWantsToStartGame = true;
+            break;
         default:
             ;
         }
@@ -264,39 +442,70 @@ void ChaosJumpGameMode::handleKeyPressed(const SDL_Scancode scancode)
             break;                           
         case SDL_SCANCODE_F:                 
             NetHandler::openFriendslist();   
-            break;                           
+            break;
         default:                             
             ;                                
         }                                    
     }
+
+    if (scancode == SDL_SCANCODE_ESCAPE)
+    {
+        endGame();
+    }
 }
 
+constexpr int expectedPacketSize = sizeof(bool) * 2 + 3 * sizeof(uint32_t);
 std::string ChaosJumpGameMode::serialize() const
 {
     std::string serialized;
-    serialized.resize(sizeof(bWantsToStartGame) + sizeof(bGameInProgress) + sizeof(mSeed));
+    serialized.resize(expectedPacketSize);
 
     uint8_t* destinationAddress = reinterpret_cast<uint8_t*>(serialized.data());
 
     memcpy(destinationAddress, &bWantsToStartGame, sizeof(bWantsToStartGame));
 
     destinationAddress = destinationAddress + sizeof(bWantsToStartGame);
-    memcpy(destinationAddress, &bGameInProgress, sizeof(bGameInProgress));
+    memcpy(destinationAddress, &bWantsToReset, sizeof(bWantsToReset));
 
-    destinationAddress = destinationAddress + sizeof(bQueueGameOver);
+    destinationAddress = destinationAddress + sizeof(bWantsToReset);
     memcpy(destinationAddress, &mSeed, sizeof(mSeed));
+    
+    destinationAddress = destinationAddress + sizeof(mSeed);
+    memcpy(destinationAddress, &mHostScore, sizeof(mHostScore));
+
+    destinationAddress = destinationAddress + sizeof(mHostScore);
+    memcpy(destinationAddress, &mClientScore, sizeof(mClientScore));
 
     return serialized;
 }
 
 void ChaosJumpGameMode::deserialize(std::string serialized)
 {
-    if (!ensure(serialized.size() >= sizeof(bool) * 2 + sizeof(uint32_t))) return;
+    if (!ensure(serialized.size() >= expectedPacketSize)) return;
 
-    uint8_t* sourceAddress = reinterpret_cast<uint8_t*>(serialized.data());
+    const uint8_t* sourceAddress = reinterpret_cast<uint8_t*>(serialized.data());
     memcpy(&bWantsToStartGame, sourceAddress, sizeof(bool));
     sourceAddress += sizeof(bool);
-    memcpy(&bQueueGameOver, sourceAddress, sizeof(bool));
+    memcpy(&bWantsToReset, sourceAddress, sizeof(bool));
     sourceAddress += sizeof(bool);
-    memcpy(&mSeed, sourceAddress, sizeof(uint32_t));
+
+    if (bWantsToReset)
+    {
+        reset();
+        bWantsToReset = false;
+    }
+
+    uint32_t newSeed;
+    memcpy(&newSeed, sourceAddress, sizeof(uint32_t));
+
+    if (newSeed != mSeed)
+    {
+        setSeed(newSeed);
+    }
+
+    sourceAddress += sizeof(uint32_t);
+    memcpy(&mHostScore, sourceAddress, sizeof(uint32_t));
+
+    sourceAddress += sizeof(uint32_t);
+    memcpy(&mClientScore, sourceAddress, sizeof(uint32_t));
 }

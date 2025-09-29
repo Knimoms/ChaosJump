@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "Player.h"
+#include "Math/Vector2.h"
 #include "Networking/SerializableInterface.h"
 #include "SteamSDK/public/steam/steamnetworkingtypes.h"
 
@@ -11,7 +12,7 @@ class GameMode : public SerializableInterface
 private:
 
     std::vector<HSteamNetConnection> mJoinedConnections = {0};
-    Player* mLocalPlayer = nullptr;
+    std::vector<Player*> mPlayers;
 
 protected:
 
@@ -27,6 +28,10 @@ public:
     virtual void handleConnectionJoined(HSteamNetConnection connection);
     virtual void handleConnectionLeft(HSteamNetConnection connection);
 
-    Player* getLocalPlayer() const { return mLocalPlayer; }
-    virtual void setLocalPlayer(Player* inLocalPlayer);
+    virtual void handleNetworkError();
+
+    virtual void addPlayer(Player* player);    
+    virtual void removePlayer(Player* player);
+
+    const std::vector<Player*>& getPlayers() const { return mPlayers; }
 };

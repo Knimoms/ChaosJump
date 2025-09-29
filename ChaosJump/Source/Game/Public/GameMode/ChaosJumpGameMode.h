@@ -19,39 +19,42 @@ class ChaosJumpGameMode : public GameMode, public TickableInterface, public Inpu
 {
 private:
 
-    Vector2 mPlayerSpawnLocation = {.x = 0, .y = 200};
+    static Vector2 sPlayerSpawnLocation;
+    static uint32_t sPlatformsPerChunk;
 
-    ChaosJumpPlayer* mLocalChaosJumpPlayer = nullptr;
-
-    std::map<HSteamNetConnection, std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>> mPlayers;
+    std::vector<ChaosJumpPlayer*> mChaosJumpPlayers;
+    std::map<HSteamNetConnection, std::unique_ptr<ChaosJumpPlayer, ChaosJumpPlayerDeleter>> mPlayerMap;
     std::unique_ptr<ChunkGenerator, ChunkGeneratorDeleter> mChunkGenerator = nullptr;
-
+    
     float mChunkHeight = 0.f;
 
     std::vector<std::unique_ptr<Platform>> mPlatforms = {};
     std::vector<std::unique_ptr<CollisionObject>> mObstacles = {};
 
-    bool bGameOver = false;
-
     float mGameTime = 0.f;
 
-    float mReachedHeight = 0.f;
+    float mEndPhaseSeconds = -1.f;
 
     struct //Replicated Properties
     {
         bool bWantsToStartGame = false;
-        bool bQueueGameOver = false;
+        bool bWantsToReset = false;
     
         uint32_t mSeed = 0;
-    };
 
+        uint32_t mHostScore = 0;
+        uint32_t mClientScore = 0;
+    };
 
 protected:
 
-    void clearDroppedPlatforms();
-    void clearObstaclesOutOfRange();
+    void setSeed(uint32_t inSeed);
+
+    void clearDroppedPlatforms(float currentHeight);
+    void clearObstaclesOutOfRange(float currentHeight);
 
     void drawMenuDisplayText() const;
+    void drawGameHUD(float deltaTime);
 
 public:
 
@@ -61,14 +64,22 @@ public:
     //~ Begin GameMode Interface
     std::string handleJoiningConnection(HSteamNetConnection connection) override;
     void handleConnectionJoined(HSteamNetConnection connection) override;
-    void setLocalPlayer(Player* inLocalPlayer) override;
+    void handleNetworkError() override;
+    void addPlayer(Player* player) override;
+    void removePlayer(Player* player) override;
     //~ End GameMode Interface
+
+protected:
+
+    void evaluateScoringPlayer();
     
     virtual void startGame();
-    virtual void gameOver();
-
+    virtual void reset();
+    virtual void endGame();
+    
     static void hostSession();
 
+public:
     //~ Begin TickableInterface
     void tick(float deltaTime) override;
     //~ End TickableInterface
@@ -82,5 +93,7 @@ public:
     void deserialize(std::string serialized) override;
     uint8_t getTypeID() const override { return 200; }
     //~ End SerializableInterface
+
     
+    static Vector2 getPlayerSpawnLocation() { return sPlayerSpawnLocation; }
 };

@@ -208,8 +208,6 @@ void Application::setRenderCamera(const std::weak_ptr<Camera> inCamera)
 
 void Application::tickObjects(const float deltaSeconds) const
 {
-    if (bPaused) return;
-    
     TickableInterface::bTickInProgress = true;
     std::vector<int> destroyedTickableIndices;
 
@@ -221,7 +219,7 @@ void Application::tickObjects(const float deltaSeconds) const
         {
             destroyedTickableIndices.push_back(static_cast<int>(i));
             continue;
-        }
+        }   
         
         tickable->tick(deltaSeconds);
     }
@@ -312,17 +310,6 @@ void Application::drawFrame(const float deltaTime)
         addDisplayText(displayText);
     }
 
-    if (bPaused)
-    {
-        DisplayText pausedText;
-        pausedText.text = "PAUSED";
-        pausedText.screenPosition = {.x = -1, .y = -1};
-        pausedText.alignment ={.x = -1, .y = -1};
-        pausedText.textScale ={.x = 1.25, .y = 1.25};
-
-        addDisplayText(pausedText);
-    }
-    
     for (DisplayText& displayText : mDisplayTexts)
     {
         displayText.duration -= deltaTime;
@@ -361,14 +348,7 @@ void Application::handleEvent(const SDL_Event& event)
             const SDL_Scancode scancode = event.key.scancode;
             const bool bPressed = SDL_EVENT_KEY_DOWN == eventType;
 
-            if (scancode == SDL_SCANCODE_ESCAPE && bPressed)
-            {
-                bPaused = !bPaused;
-            }
-            else if (!bPaused)
-            {
-                mInputRouter->routeKeyEvent(scancode, bPressed);
-            }
+            mInputRouter->routeKeyEvent(scancode, bPressed);
         }
         break;
     default: ;
